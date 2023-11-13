@@ -20,10 +20,14 @@ extern unsigned int __bss_end;
 #define KERNEL_VADDR_START 0x0
 #endif
 
-#define RT_HW_HEAP_BEGIN ((void *)&__bss_end)
-#define RT_HW_HEAP_END   ((void *)(RT_HW_HEAP_BEGIN + 64 * 1024 * 1024))
+#define HEAP_PHY_START 0x6f000000
+
+#define RT_HW_HEAP_BEGIN ((void *)HEAP_PHY_START)
+#define RT_HW_HEAP_END   ((void *)(RT_HW_HEAP_BEGIN + 16 * 1024 * 1024))
+#if 0 /* todo */
 #define RT_HW_PAGE_START RT_HW_HEAP_END
-#define RT_HW_PAGE_END   ((void *)(KERNEL_VADDR_START + 256 * 1024 * 1024))
+#define RT_HW_PAGE_END   ((void *)(KERNEL_VADDR_START + 8 * 1024 * 1024))
+#endif
 
 void rt_hw_board_init(void);
 void rt_init_user_mem(struct rt_thread *thread, const char *name,

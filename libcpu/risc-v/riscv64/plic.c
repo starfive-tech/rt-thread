@@ -50,7 +50,10 @@ void plic_set_priority(int irq, int priority)
 void plic_irq_enable(int irq)
 {
     int hart = __raw_hartid();
-    *(uint32_t *)PLIC_ENABLE(hart) = ((*(uint32_t *)PLIC_ENABLE(hart)) | (1 << irq));
+    int regoffset = (irq >> 5) * 4;
+
+    *(uint32_t *)PLIC_ENABLE(hart, regoffset) =
+        ((*(uint32_t *)PLIC_ENABLE(hart, regoffset)) | (1 << (irq & 0x1f)));
 #ifdef RISCV_S_MODE
     set_csr(sie, read_csr(sie) | MIP_SEIP);
 #else
@@ -61,7 +64,10 @@ void plic_irq_enable(int irq)
 void plic_irq_disable(int irq)
 {
     int hart = __raw_hartid();
-    *(uint32_t *)PLIC_ENABLE(hart) = (((*(uint32_t *)PLIC_ENABLE(hart)) & (~(1 << irq))));
+    int regoffset = (irq >> 5) * 4;
+
+    *(uint32_t *)PLIC_ENABLE(hart, regoffset) =
+         (((*(uint32_t *)PLIC_ENABLE(hart, regoffset)) & (~(1 << irq & 0x1f))));
 }
 
 /*
@@ -118,11 +124,13 @@ void plic_set_ie(rt_uint32_t word_index, rt_uint32_t val)
     writel(val, plic_ie);
 }
 
+#if 0
 static void _set_sie(int hartid)
 {
     for (size_t i = hartid * WORD_CNT_BYTE; i < 32; i++)
         plic_set_ie(i, 0xffffffff);
 }
+#endif
 
 void plic_init()
 {
@@ -137,5 +145,5 @@ void plic_init()
     }
 
     // in a single core system, only current context was set
-    _set_sie(__raw_hartid());
+  ////  _set_sie(__raw_hartid());
 }

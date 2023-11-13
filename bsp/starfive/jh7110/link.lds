@@ -14,19 +14,19 @@ OUTPUT_ARCH( "riscv" )
 
 /*
  * Memory layout:
- * 0x80000000 - 0x80200000: SBI
- * 0x80200000 - 0x81200000: Kernel
+ * 0x40000000 - 0x40200000: SBI
+ * 0x6e800000 - 0x6f000000: Kernel
  */
 
 MEMORY
 {
-   SRAM : ORIGIN = 0x80200000, LENGTH = 0x1000000
+   SRAM : ORIGIN = 0x6e800000, LENGTH = 0x800000
 }
 
 ENTRY(_start)
 SECTIONS
 {
-    . = 0x80200000 ;
+    . = 0x6e800000 ;
 
     /* __STACKSIZE__ = 4096; */
     __text_start = .;
@@ -116,19 +116,6 @@ SECTIONS
         PROVIDE(__dtors_end__ = .);
     } > SRAM
 
-    /* stack for dual core */
-    .stack :
-    {
-        . = ALIGN(64);
-        __stack_start__ = .;
-
-        . += __STACKSIZE__;
-        __stack_cpu0 = .;
-
-        . += __STACKSIZE__;
-        __stack_cpu1 = .;
-    } > SRAM
-
     .sbss :
     {
     __bss_start = .;
@@ -145,6 +132,19 @@ SECTIONS
         *(.dynbss)
         *(COMMON)
     __bss_end = .;
+    } > SRAM
+
+    /* stack for dual core */
+    .stack :
+    {
+        . = ALIGN(64);
+        __stack_start__ = .;
+
+        . += __STACKSIZE__;
+        __stack_cpu0 = .;
+
+        . += __STACKSIZE__;
+        __stack_cpu1 = .;
     } > SRAM
 
     _end = .;

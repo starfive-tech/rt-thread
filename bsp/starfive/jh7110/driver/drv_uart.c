@@ -29,10 +29,9 @@ struct device_uart
 struct rt_serial_device serial0;
 struct device_uart uart0;
 
-//static volatile rt_uint8_t *uart8250_base;
-void *uart8250_base = (void*)0x10000000;
+void *uart8250_base = (void*)0x10010000; /* uart 1 */
 
-//static rt_uint32_t uart8250_in_freq;
+static rt_uint32_t uart8250_in_freq = 24000000;
 static rt_uint32_t uart8250_baudrate = 115200;
 static rt_uint32_t uart8250_reg_width = 4;
 static rt_uint32_t uart8250_reg_shift = 2;
@@ -64,11 +63,23 @@ static void set_reg(rt_uint32_t num, rt_uint32_t val)
 
 void uart_init(void)
 {
+    int bdiv;
+
+    bdiv = (uart8250_in_freq + 8 * uart8250_baudrate) /
+	(16 * uart8250_baudrate);
+
     /* Disable all interrupts */
     set_reg(UART_IER, 0x00);
     /* Enable DLAB */
     set_reg(UART_LCR, 0x80);
     
+    if (bdiv) {
+	    /* Set divisor low byte */
+	    set_reg(UART_DLL, bdiv & 0xff);
+	    /* Set divisor high byte */
+	    set_reg(UART_DLH, (bdiv >> 8) & 0xff);
+    }
+
     /* 8 bits, no parity, one stop bit */
     set_reg(UART_LCR, 0x03);
     /* Enable FIFO */
@@ -184,7 +195,7 @@ int rt_hw_uart_init(void)
     serial->config = config;
     serial->config.baud_rate = UART_DEFAULT_BAUDRATE;
     uart->hw_base = (rt_ubase_t)uart8250_base;
-    uart->irqno = 0x0a;
+    uart->irqno = 33;
 
     rt_hw_serial_register(serial,
                           RT_CONSOLE_DEVICE_NAME,

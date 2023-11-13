@@ -20,11 +20,13 @@
 /* TRANSMIT AND RECEIVE HOLDING REGISTER */
 #define UART_RHR 0
 #define UART_THR 0
+#define UART_DLL 0	/* Out: Divisor Latch Low */
 
 /* INTERRUPT ENABLE REGISTER */
 #define UART_IER 1
 #define UART_IER_RX_ENABLE (1 << 0)
 #define UART_IER_TX_ENABLE (1 << 1)
+#define UART_DLH 1	/* Out: Divisor Latch High */
 
 /* FIFO CONTROL REGISTER */
 #define UART_FCR 2

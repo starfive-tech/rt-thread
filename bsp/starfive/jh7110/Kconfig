@@ -19,7 +19,7 @@ source "$RTT_DIR/Kconfig"
 source "$PKGS_DIR/Kconfig"
 source "driver/Kconfig"
 
-config BOARD_QEMU_VIRT_RV64
+config BOARD_RV64
     bool
     select ARCH_RISCV64
     select ARCH_CONTEXT_EXTEND
@@ -65,4 +65,4 @@ config ARCH_USING_NEW_CTX_SWITCH
 
 config __STACKSIZE__
     int "stack size for interrupt"
-    default 4096
+    default 16384
