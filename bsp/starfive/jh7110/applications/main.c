@@ -12,9 +12,10 @@
 #include <stdio.h>
 #include <string.h>
 
+extern int rpmsg_test();
 int main(void)
 {
     printf("Hello RISC-V\n");
 
-    return 0;
+    return rpmsg_test();
 }

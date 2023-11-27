@@ -33,6 +33,9 @@
 #include "rpmsg_lite.h"
 #include "rpmsg_queue.h"
 
+#include <rtthread.h>
+#include <rtdevice.h>
+
 int32_t rpmsg_queue_rx_cb(void *payload, uint32_t payload_len, uint32_t src, void *priv)
 {
     rpmsg_queue_rx_cb_data_t msg;

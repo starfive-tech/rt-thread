@@ -17,18 +17,19 @@
  * to run the Linux
  */
 #ifndef VRING_ALIGN
-#define VRING_ALIGN (0x10U)
+#define VRING_ALIGN (0x40U)
 #endif
+#define RPMSG_MBOX_CHANNEL (0)
 
 /* contains pool of descriptors and two circular buffers */
 #ifndef VRING_SIZE
 /* set VRING_SIZE based on number of used buffers as calculated in vring_init */
 #define VRING_DESC_SIZE (((RL_BUFFER_COUNT * sizeof(struct vring_desc)) + VRING_ALIGN - 1UL) & ~(VRING_ALIGN - 1UL))
 #define VRING_AVAIL_SIZE                                                                                            \
-    (((sizeof(struct vring_avail) + (RL_BUFFER_COUNT * sizeof(uint16_t)) + sizeof(uint16_t)) + VRING_ALIGN - 1UL) & \
+    (((sizeof(struct vring_avail) + (RL_BUFFER_COUNT * sizeof(uint16_t))) + VRING_ALIGN - 1UL) & \
      ~(VRING_ALIGN - 1UL))
 #define VRING_USED_SIZE                                                                                     \
-    (((sizeof(struct vring_used) + (RL_BUFFER_COUNT * sizeof(struct vring_used_elem)) + sizeof(uint16_t)) + \
+    (((sizeof(struct vring_used) + (RL_BUFFER_COUNT * sizeof(struct vring_used_elem)))  + \
       VRING_ALIGN - 1UL) &                                                                                  \
      ~(VRING_ALIGN - 1UL))
 #define VRING_SIZE (VRING_DESC_SIZE + VRING_AVAIL_SIZE + VRING_USED_SIZE)
@@ -41,8 +42,7 @@
 #define RL_GET_LINK_ID(id)              (((id)&0xFFFFFFFEU) >> 1U)
 #define RL_GET_Q_ID(id)                 ((id)&0x1U)
 
-#define RL_PLATFORM_LPC5410x_M4_M0_LINK_ID (0U)
-#define RL_PLATFORM_HIGHEST_LINK_ID        (0U)
+#define RL_PLATFORM_HIGHEST_LINK_ID        (0x50000)
 
 /* platform interrupt related functions */
 int32_t platform_init_interrupt(uint32_t vector_id, void *isr_data);

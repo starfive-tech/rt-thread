@@ -91,6 +91,8 @@
 /* IPI (IPI) Extension */
 #define SBI_EXT_ID_IPI          0x735049
 #define SBI_IPI_SEND_IPI        0
+#define SBI_IPI_SEND_IPI_EXT    1
+
 
 /* RFENCE (RFNC) Extension */
 #define SBI_EXT_ID_RFNC                     0x52464E43
@@ -181,7 +183,8 @@ sbi_probe_extension(long id)
 void sbi_set_timer(uint64_t val);
 
 /* IPI extension functions. */
-void sbi_send_ipi(const unsigned long *hart_mask);
+void sbi_send_ipi(const unsigned long *hart_mask, int type, int hbase);
+void sbi_clear_ipi(void);
 
 /* RFENCE extension functions. */
 void sbi_remote_fence_i(const unsigned long *hart_mask);

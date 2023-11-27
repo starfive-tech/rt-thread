@@ -148,10 +148,11 @@ int32_t virtqueue_create(uint16_t id,
         vq->notify_fc      = notify_fc;
 
         // indirect addition  is not supported
-        vq->vq_ring_size = vring_size(ring->num_descs, ring->align);
+        //vq->vq_ring_size = vring_size(ring->num_descs, ring->align);
         vq->vq_ring_mem  = (void *)ring->phy_addr;
 
-        vring_init(&vq->vq_ring, vq->vq_nentries, vq->vq_ring_mem, (uint32_t)vq->vq_alignment);
+	vq->vq_ring_size = env_vring_init(&vq->vq_ring, vq->vq_nentries, vq->vq_ring_mem, (uint32_t)vq->vq_alignment);
+        //vring_init(&vq->vq_ring, vq->vq_nentries, vq->vq_ring_mem, (uint32_t)vq->vq_alignment);
 
         *v_queue = vq;
     }

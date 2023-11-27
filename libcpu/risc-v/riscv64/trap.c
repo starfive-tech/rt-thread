@@ -290,6 +290,8 @@ static void handle_nested_trap_panic(
 #define IN_USER_SPACE (stval >= USER_VADDR_START && stval < USER_VADDR_TOP)
 #define PAGE_FAULT (id == EP_LOAD_PAGE_FAULT || id == EP_STORE_PAGE_FAULT)
 
+int ipi_init;
+
 /* Trap entry */
 void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw_stack_frame *sp)
 {
@@ -298,13 +300,13 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
     const char *msg;
 
     /* supervisor external interrupt */
-    if (scause == (uint64_t)(0x8000000000000005))
+    if (scause == (uint64_t)(0x8000000000000005)) /* timer interrupt */
     {
         rt_interrupt_enter();
         tick_isr();
         rt_interrupt_leave();
     }
-    else if (scause == (uint64_t)(0x8000000000000009))
+    else if (scause == (uint64_t)(0x8000000000000009)) /* external interrupt */
     {
         rt_interrupt_enter();
         int plic_irq = plic_claim();
@@ -314,6 +316,18 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
             plic_irq = plic_claim();
         }
         rt_interrupt_leave();
+    }
+    else if (scause == (uint64_t)(0x8000000000000001)) /* soft interrupt */
+    {
+	sbi_clear_ipi(); /* clear and get type */
+
+	rt_interrupt_enter();
+
+	rpmsg_handler(NULL);
+
+	rt_interrupt_leave();
+	if (!ipi_init)
+		ipi_init = 1;
     }
     else
     {
