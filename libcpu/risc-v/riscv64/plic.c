@@ -27,6 +27,9 @@
 
 size_t plic_base = 0x0c000000L;
 
+#ifdef RISCV_DEFINE_PLIC_OFFSET
+int (*hartid_to_plic_num)(int hart);
+#endif
 /*
  * Each PLIC interrupt source can be assigned a priority by writing
  * to its 32-bit memory-mapped priority register.

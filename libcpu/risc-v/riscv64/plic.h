@@ -30,6 +30,15 @@ extern size_t plic_base;
 #define PLIC_ENABLE_STRIDE              0x80
 #define PLIC_CONTEXT_STRIDE             0x1000
 
+#ifdef RISCV_DEFINE_PLIC_OFFSET
+extern int (*hartid_to_plic_num)(int hart);
+
+#define PLIC_ENABLE(hart)               (VIRT_PLIC_BASE + 0x2000 + hartid_to_plic_num(hart) * PLIC_ENABLE_STRIDE)
+#define PLIC_THRESHOLD(hart)            (VIRT_PLIC_BASE + 0x200000 + hartid_to_plic_num(hart) * PLIC_CONTEXT_STRIDE)
+#define PLIC_CLAIM(hart)                (VIRT_PLIC_BASE + 0x200004 +  hartid_to_plic_num(hart) * PLIC_CONTEXT_STRIDE)
+#define PLIC_COMPLETE(hart)             (VIRT_PLIC_BASE + 0x200004 +  hartid_to_plic_num(hart) * PLIC_CONTEXT_STRIDE)
+
+#else
 #ifndef RISCV_S_MODE
 #define PLIC_MENABLE_OFFSET             (0x2000)
 #define PLIC_MTHRESHOLD_OFFSET          (0x200000)
@@ -51,6 +60,7 @@ extern size_t plic_base;
 #define PLIC_THRESHOLD(hart)            (VIRT_PLIC_BASE + PLIC_STHRESHOLD_OFFSET +  (hart * 2) * PLIC_CONTEXT_STRIDE)
 #define PLIC_CLAIM(hart)                (VIRT_PLIC_BASE + PLIC_SCLAIM_OFFSET +      (hart * 2) * PLIC_CONTEXT_STRIDE)
 #define PLIC_COMPLETE(hart)             (VIRT_PLIC_BASE + PLIC_SCOMPLETE_OFFSET +   (hart * 2) * PLIC_CONTEXT_STRIDE)
+#endif
 #endif
 
 #define PLIC_PRIORITY(id)               (VIRT_PLIC_BASE + PLIC_PRIORITY_OFFSET + (id) * 4)
