@@ -77,7 +77,7 @@ rt_isr_handler_t rt_hw_interrupt_install(int vector, rt_isr_handler_t handler,
 void rt_hw_interrupt_init()
 {
     /* Enable machine external interrupts. */
-    // set_csr(sie, SIP_SEIP);
+    set_csr(sie, SIP_SEIP);
     int idx = 0;
     /* init exceptions table */
     for (idx = 0; idx < MAX_HANDLERS; idx++)
