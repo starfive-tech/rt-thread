@@ -118,12 +118,6 @@ void plic_set_ie(rt_uint32_t word_index, rt_uint32_t val)
     writel(val, plic_ie);
 }
 
-static void _set_sie(int hartid)
-{
-    for (size_t i = hartid * WORD_CNT_BYTE; i < 32; i++)
-        plic_set_ie(i, 0xffffffff);
-}
-
 void plic_init()
 {
     // PLIC takes up 64 MB space
@@ -135,7 +129,4 @@ void plic_init()
     {
         plic_set_priority(i, 1);
     }
-
-    // in a single core system, only current context was set
-    _set_sie(__raw_hartid());
 }
