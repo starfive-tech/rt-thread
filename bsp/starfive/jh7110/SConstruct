@@ -24,8 +24,18 @@ Export('rtconfig')
 rtconfig.CPU='riscv64'
 rtconfig.ARCH='risc-v'
 
+SDK_ROOT = os.path.abspath('../')
+
+if os.path.exists(SDK_ROOT + '/libraries'):
+    libraries_path_prefix = SDK_ROOT + '/libraries'
+else:
+    libraries_path_prefix = os.path.dirname(SDK_ROOT) + '/libraries'
+
 # prepare building environment
 objs = PrepareBuilding(env, RTT_ROOT, has_libcpu = False)
+
+# include drivers
+objs.extend(SConscript(os.path.join(libraries_path_prefix, 'driver', 'SConscript'), variant_dir='build/libraries/driver', duplicate=0))
 
 stack_size = 4096
 
