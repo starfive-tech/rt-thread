@@ -33,7 +33,7 @@ extern size_t plic_base;
 #ifdef RISCV_DEFINE_PLIC_OFFSET
 extern int (*hartid_to_plic_num)(int hart);
 
-#define PLIC_ENABLE(hart)               (VIRT_PLIC_BASE + 0x2000 + hartid_to_plic_num(hart) * PLIC_ENABLE_STRIDE)
+#define PLIC_ENABLE(hart, offset)       (VIRT_PLIC_BASE + 0x2000 + hartid_to_plic_num(hart) * PLIC_ENABLE_STRIDE + offset)
 #define PLIC_THRESHOLD(hart)            (VIRT_PLIC_BASE + 0x200000 + hartid_to_plic_num(hart) * PLIC_CONTEXT_STRIDE)
 #define PLIC_CLAIM(hart)                (VIRT_PLIC_BASE + 0x200004 +  hartid_to_plic_num(hart) * PLIC_CONTEXT_STRIDE)
 #define PLIC_COMPLETE(hart)             (VIRT_PLIC_BASE + 0x200004 +  hartid_to_plic_num(hart) * PLIC_CONTEXT_STRIDE)

@@ -53,7 +53,10 @@ void plic_set_priority(int irq, int priority)
 void plic_irq_enable(int irq)
 {
     int hart = __raw_hartid();
-    *(uint32_t *)PLIC_ENABLE(hart) = ((*(uint32_t *)PLIC_ENABLE(hart)) | (1 << irq));
+    int regoffset = (irq >> 5) * 4;
+
+    *(uint32_t *)PLIC_ENABLE(hart, regoffset) =
+        ((*(uint32_t *)PLIC_ENABLE(hart, regoffset)) | (1 << (irq & 0x1f)));
 #ifdef RISCV_S_MODE
     set_csr(sie, read_csr(sie) | MIP_SEIP);
 #else
@@ -64,7 +67,10 @@ void plic_irq_enable(int irq)
 void plic_irq_disable(int irq)
 {
     int hart = __raw_hartid();
-    *(uint32_t *)PLIC_ENABLE(hart) = (((*(uint32_t *)PLIC_ENABLE(hart)) & (~(1 << irq))));
+    int regoffset = (irq >> 5) * 4;
+
+    *(uint32_t *)PLIC_ENABLE(hart, regoffset) =
+         (((*(uint32_t *)PLIC_ENABLE(hart, regoffset)) & (~(1 << irq & 0x1f))));
 }
 
 /*
