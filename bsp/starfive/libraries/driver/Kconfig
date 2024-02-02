@@ -1,0 +1,9 @@
+menu "General Drivers Configuration"
+
+config BSP_USING_SPI
+    bool "Enable spi driver"
+    default n
+    select RT_USING_SPI
+
+endmenu
+

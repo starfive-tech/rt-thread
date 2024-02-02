@@ -323,9 +323,13 @@
 
 #define RISCV_S_MODE
 #define RISCV_DEFINE_PLIC_OFFSET
+#define BSP_USING_VF2
 #define BOARD_RV64
 #define ENABLE_FPU
 #define ARCH_USING_NEW_CTX_SWITCH
 #define __STACKSIZE__ 16384
+
+/* General Drivers Configuration */
+
 
 #endif

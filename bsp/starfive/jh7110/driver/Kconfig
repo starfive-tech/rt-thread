@@ -8,4 +8,17 @@ config RISCV_DEFINE_PLIC_OFFSET
     bool "define hartid to plic num mapping function"
     default y
 
+choice
+    prompt "Choose Board"
+
+    default BSP_USING_VF2
+
+    config BSP_USING_VF2
+        bool "visionfive v2 board"
+
+    config BSP_USING_DEVKITS
+        bool "devkits board"
+
+endchoice
+
 endmenu

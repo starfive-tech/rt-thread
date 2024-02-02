@@ -66,3 +66,5 @@ config ARCH_USING_NEW_CTX_SWITCH
 config __STACKSIZE__
     int "stack size for interrupt"
     default 16384
+
+source "../libraries/driver/Kconfig"
