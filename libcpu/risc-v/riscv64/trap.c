@@ -297,9 +297,12 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
     {
         rt_interrupt_enter();
         int plic_irq = plic_claim();
-        plic_complete(plic_irq);
-        irq_desc[plic_irq].handler(plic_irq, irq_desc[plic_irq].param);
-        rt_interrupt_leave();
+        while (plic_irq) {
+            plic_complete(plic_irq);
+            irq_desc[plic_irq].handler(plic_irq, irq_desc[plic_irq].param);
+            plic_irq = plic_claim();
+        }
+	rt_interrupt_leave();
     }
     else
     {
