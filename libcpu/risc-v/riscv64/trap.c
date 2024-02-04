@@ -304,6 +304,18 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
         }
 	rt_interrupt_leave();
     }
+    else if (scause == (uint64_t)(0x8000000000000001)) /* soft interrupt */
+    {
+	sbi_clear_ipi(); /* clear and get type */
+
+	rt_interrupt_enter();
+
+	//rpmsg_handler(NULL);
+
+	//if (!ipi_init)
+	//	ipi_init = 1;
+	rt_interrupt_leave();
+    }
     else
     {
         // trap cannot nested when handling another trap / interrupt
