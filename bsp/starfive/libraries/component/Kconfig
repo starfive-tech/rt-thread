@@ -1,0 +1,8 @@
+menu "component Configuration"
+
+config BSP_USING_RPMSG_LITE
+    bool "Enable rpmsg lite driver"
+    default n
+
+endmenu
+

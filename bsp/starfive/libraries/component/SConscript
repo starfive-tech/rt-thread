@@ -1,0 +1,18 @@
+# RT-Thread building script for component
+
+from building import *
+
+cwd     = GetCurrentDir()
+src = Glob('*.c') + Glob('*.cpp')
+CPPPATH = [cwd]
+
+group = DefineGroup('component', src, depend = [''], CPPPATH = CPPPATH)
+
+objs = [group]
+
+list = os.listdir(cwd)
+
+if GetDepend('BSP_USING_RPMSG_LITE'):
+     objs = objs + SConscript(os.path.join('rpmsg-lite', 'SConscript'))
+
+Return('objs')
