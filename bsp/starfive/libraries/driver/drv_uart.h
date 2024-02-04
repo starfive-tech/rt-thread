@@ -53,13 +53,24 @@
 #define UART_SCR 7
 #define UART_DEFAULT_BAUDRATE 115200
 
-extern void *uart0_base;
-
-#define write8_uart0(idx, value) __raw_writeb(((rt_uint8_t)value), (void*)((size_t)uart0_base + (idx)))
-#define read8_uart0(idx) __raw_readb((void*)((size_t)uart0_base + (idx)))
+struct uart_config {
+    struct rt_serial_device serial;
+    rt_uint32_t hw_base;
+    void *remap_base;
+    rt_uint32_t irqno;
+    rt_uint32_t uart8250_in_freq;
+    rt_uint32_t uart8250_baudrate;
+    rt_uint32_t uart8250_reg_width;
+    rt_uint32_t uart8250_reg_shift;
+    rt_uint8_t index;
+    rt_uint8_t control_uart;
+};
 
 void rt_hw_uart_start_rx_thread();
-int rt_hw_uart_init(void);
 void drv_uart_puts(char *str); // for syscall
+void rt_hw_uart_isr(int irqno, void *param);
+int rt_hw_uart_init(void);
+int get_uart_config_num();
+struct uart_config *get_uart_config(int i);
 
 #endif /* __DRV_UART_H__ */

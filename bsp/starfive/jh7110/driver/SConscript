@@ -3,8 +3,12 @@
 from building import *
 
 cwd     = GetCurrentDir()
-src     = Glob('*.c')
+src     = ['board.c']
+
 CPPPATH = [cwd]
+
+if GetDepend('BSP_USING_VF2'):
+    src += ['board_vf2.c']
 
 group = DefineGroup('Drivers', src, depend = [''], CPPPATH = CPPPATH)
 
