@@ -129,20 +129,25 @@ void sbi_set_timer(uint64_t val)
     }
 }
 
-void sbi_send_ipi(const unsigned long *hart_mask)
+void sbi_send_ipi(const unsigned long *hart_mask, int type, int hbase)
 {
     struct sbi_ret ret;
 
     /* Use the IPI legacy replacement extension, if available. */
     if (has_ipi_extension)
     {
-        ret = SBI_CALL2(SBI_EXT_ID_IPI, SBI_IPI_SEND_IPI, *hart_mask, 0);
+        ret = SBI_CALL2(SBI_EXT_ID_IPI, type, *hart_mask, hbase);
         RT_ASSERT(ret.error == SBI_SUCCESS);
     }
     else
     {
         (void)SBI_CALL1(SBI_SEND_IPI, 0, (uint64_t)hart_mask);
     }
+}
+
+void sbi_clear_ipi(void)
+{
+	SBI_CALL0(SBI_CLEAR_IPI, 0);
 }
 
 void sbi_remote_fence_i(const unsigned long *hart_mask)
