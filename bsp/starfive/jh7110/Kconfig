@@ -68,3 +68,4 @@ config __STACKSIZE__
     default 16384
 
 source "../libraries/driver/Kconfig"
+source "../libraries/component/Kconfig"

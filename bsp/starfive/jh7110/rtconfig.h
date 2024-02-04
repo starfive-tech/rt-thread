@@ -332,4 +332,8 @@
 /* General Drivers Configuration */
 
 
+/* component Configuration */
+
+#define BSP_USING_RPMSG_LITE
+
 #endif

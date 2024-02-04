@@ -37,6 +37,8 @@ objs = PrepareBuilding(env, RTT_ROOT, has_libcpu = False)
 # include drivers
 objs.extend(SConscript(os.path.join(libraries_path_prefix, 'driver', 'SConscript'), variant_dir='build/libraries/driver', duplicate=0))
 
+objs.extend(SConscript(os.path.join(libraries_path_prefix, 'component', 'SConscript'), variant_dir='build/libraries/component', duplicate=0))
+
 stack_size = 4096
 
 stack_lds = open('link_stacksize.lds', 'w')
