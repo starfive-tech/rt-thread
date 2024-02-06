@@ -34,8 +34,6 @@
 #include "rpmsg_ns.h"
 #include <stdint.h>
 
-#define RL_NS_NAME_SIZE (32)
-
 /*!
  * struct rpmsg_ns_msg - dynamic name service announcement message
  * @name: name of remote service that is published

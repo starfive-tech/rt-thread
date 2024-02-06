@@ -39,6 +39,7 @@
 //! @{
 
 #define RL_NS_EPT_ADDR (0x35u)
+#define RL_NS_NAME_SIZE	(32)
 
 /* Up to 32 flags available */
 enum rpmsg_ns_flags
