@@ -10,6 +10,10 @@ CPPPATH = [cwd]
 if GetDepend('BSP_USING_VF2'):
     src += ['board_vf2.c']
 
+if GetDepend('BSP_USING_RPMSG_LITE'):
+    src += ['rpmsg_platform.c']
+    src += ['rpmsg_env_rtthread.c']
+
 group = DefineGroup('Drivers', src, depend = [''], CPPPATH = CPPPATH)
 
 objs = [group]
