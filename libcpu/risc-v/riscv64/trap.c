@@ -30,6 +30,7 @@
 #define DBG_TAG "libcpu.trap"
 #define DBG_LVL DBG_INFO
 #include <rtdbg.h>
+int (*soft_interrupt_handler)(void *);
 
 void dump_regs(struct rt_hw_stack_frame *regs)
 {
@@ -279,6 +280,11 @@ static void handle_nested_trap_panic(
 #define IN_USER_SPACE (stval >= USER_VADDR_START && stval < USER_VADDR_TOP)
 #define PAGE_FAULT (id == EP_LOAD_PAGE_FAULT || id == EP_STORE_PAGE_FAULT)
 
+void rt_set_soft_handler(int (*handler)(void *))
+{
+    soft_interrupt_handler = handler;
+}
+
 /* Trap entry */
 void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw_stack_frame *sp)
 {
@@ -310,10 +316,9 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
 
 	rt_interrupt_enter();
 
-	//rpmsg_handler(NULL);
+	if (soft_interrupt_handler)
+		soft_interrupt_handler(NULL);
 
-	//if (!ipi_init)
-	//	ipi_init = 1;
 	rt_interrupt_leave();
     }
     else

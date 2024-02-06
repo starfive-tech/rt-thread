@@ -110,7 +110,7 @@ void sbi_print_version(void)
     major = (sbi_spec_version & SBI_SPEC_VERS_MAJOR_MASK) >>
             SBI_SPEC_VERS_MAJOR_OFFSET;
     minor = (sbi_spec_version & SBI_SPEC_VERS_MINOR_MASK);
-    rt_kprintf("SBI Specification Version: %u.%u\n", major, minor);
+    rt_kprintf("SBI Specification Version: %u.%u %u\n", major, minor, has_ipi_extension);
 }
 
 void sbi_set_timer(uint64_t val)
@@ -136,7 +136,7 @@ void sbi_send_ipi(const unsigned long *hart_mask, int type, int hbase)
     /* Use the IPI legacy replacement extension, if available. */
     if (has_ipi_extension)
     {
-        ret = SBI_CALL2(SBI_EXT_ID_IPI, type, *hart_mask, hbase);
+        ret = SBI_CALL2(SBI_EXT_ID_IPI, SBI_IPI_SEND_IPI_EXT, *hart_mask, hbase);
         RT_ASSERT(ret.error == SBI_SUCCESS);
     }
     else
