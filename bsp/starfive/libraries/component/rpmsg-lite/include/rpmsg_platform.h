@@ -17,7 +17,7 @@
  * to run the Linux
  */
 #ifndef VRING_ALIGN
-#define VRING_ALIGN (0x10U)
+#define VRING_ALIGN (0x40U)
 #endif
 
 /* contains pool of descriptors and two circular buffers */
@@ -25,10 +25,10 @@
 /* set VRING_SIZE based on number of used buffers as calculated in vring_init */
 #define VRING_DESC_SIZE (((RL_BUFFER_COUNT * sizeof(struct vring_desc)) + VRING_ALIGN - 1UL) & ~(VRING_ALIGN - 1UL))
 #define VRING_AVAIL_SIZE                                                                                            \
-    (((sizeof(struct vring_avail) + (RL_BUFFER_COUNT * sizeof(uint16_t)) + sizeof(uint16_t)) + VRING_ALIGN - 1UL) & \
+   (((sizeof(struct vring_avail) + (RL_BUFFER_COUNT * sizeof(uint16_t))) + VRING_ALIGN - 1UL) & \
      ~(VRING_ALIGN - 1UL))
 #define VRING_USED_SIZE                                                                                     \
-    (((sizeof(struct vring_used) + (RL_BUFFER_COUNT * sizeof(struct vring_used_elem)) + sizeof(uint16_t)) + \
+   (((sizeof(struct vring_used) + (RL_BUFFER_COUNT * sizeof(struct vring_used_elem)))  + \
       VRING_ALIGN - 1UL) &                                                                                  \
      ~(VRING_ALIGN - 1UL))
 #define VRING_SIZE (VRING_DESC_SIZE + VRING_AVAIL_SIZE + VRING_USED_SIZE)
