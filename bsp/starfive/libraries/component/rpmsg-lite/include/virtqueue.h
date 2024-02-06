@@ -211,14 +211,17 @@ int32_t virtqueue_create_static(uint16_t id,
                                 void (*callback_fc)(struct virtqueue *vq),
                                 void (*notify_fc)(struct virtqueue *vq),
                                 struct virtqueue **v_queue,
-                                struct vq_static_context *vq_ctxt);
+				uint32_t (*vring_init)(void *vr, unsigned int num, void *p,
+				    unsigned long align));
 #else
 int32_t virtqueue_create(uint16_t id,
                          const char *name,
                          struct vring_alloc_info *ring,
                          void (*callback_fc)(struct virtqueue *vq),
                          void (*notify_fc)(struct virtqueue *vq),
-                         struct virtqueue **v_queue);
+                         struct virtqueue **v_queue,
+                         uint32_t (*vring_init)(void *vr, unsigned int num, void *p,
+			      unsigned long align));
 #endif
 
 int32_t virtqueue_add_buffer(struct virtqueue *vq, uint16_t head_idx);

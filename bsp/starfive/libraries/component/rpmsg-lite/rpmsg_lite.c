@@ -1005,7 +1005,7 @@ struct rpmsg_lite_instance *rpmsg_lite_master_init(void *shmem_addr,
                                          (struct vq_static_context *)&rpmsg_lite_dev->vq_ctxt[idx]);
 #else
         status = virtqueue_create((uint16_t)(RL_GET_VQ_ID(link_id, idx)), vq_names[idx], &ring_info, callback[idx],
-                                  virtqueue_notify, &vqs[idx]);
+                                  virtqueue_notify, &vqs[idx], env_vring_init);
 #endif /* RL_USE_STATIC_API */
 
         if (status == RL_SUCCESS)
@@ -1272,7 +1272,7 @@ struct rpmsg_lite_instance *rpmsg_lite_remote_init(void *shmem_addr, uint32_t li
                                          (struct vq_static_context *)&rpmsg_lite_dev->vq_ctxt[idx]);
 #else
         status = virtqueue_create((uint16_t)(RL_GET_VQ_ID(link_id, idx)), vq_names[idx], &ring_info, callback[idx],
-                                  virtqueue_notify, &vqs[idx]);
+                                  virtqueue_notify, &vqs[idx], env_vring_init);
 #endif /* RL_USE_STATIC_API */
 
         if (status != RL_SUCCESS)

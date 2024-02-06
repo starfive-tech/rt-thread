@@ -118,7 +118,9 @@ int32_t virtqueue_create(uint16_t id,
                          struct vring_alloc_info *ring,
                          void (*callback_fc)(struct virtqueue *vq),
                          void (*notify_fc)(struct virtqueue *vq),
-                         struct virtqueue **v_queue)
+                         struct virtqueue **v_queue,
+                         uint32_t (*vring_init)(void *vr, unsigned int num, void *p,
+			      unsigned long align))
 {
     struct virtqueue *vq    = VQ_NULL;
     volatile int32_t status = VQUEUE_SUCCESS;
@@ -148,11 +150,13 @@ int32_t virtqueue_create(uint16_t id,
         vq->notify_fc      = notify_fc;
 
         // indirect addition  is not supported
-        vq->vq_ring_size = vring_size(ring->num_descs, ring->align);
         vq->vq_ring_mem  = (void *)ring->phy_addr;
-
-        vring_init(&vq->vq_ring, vq->vq_nentries, vq->vq_ring_mem, (uint32_t)vq->vq_alignment);
-
+	if (vring_init) {
+	    vq->vq_ring_size = vring_init(&vq->vq_ring, vq->vq_nentries, vq->vq_ring_mem, (uint32_t)vq->vq_alignment);
+	} else {
+            vq->vq_ring_size = vring_size(ring->num_descs, ring->align);
+            vring_init(&vq->vq_ring, vq->vq_nentries, vq->vq_ring_mem, (uint32_t)vq->vq_alignment);
+	}
         *v_queue = vq;
     }
 
