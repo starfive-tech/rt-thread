@@ -183,7 +183,7 @@ int rt_hw_uart_init(void)
 			      RT_CONSOLE_DEVICE_NAME,
 			      RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
 			      uart_config);
-	rt_hw_interrupt_install(uart_config->irqno, rt_hw_uart_isr, uart_config, RT_CONSOLE_DEVICE_NAME);
+	rt_hw_interrupt_install(uart_config->irqno, rt_hw_uart_isr, uart_config, console_name);
 	rt_hw_interrupt_umask(uart_config->irqno);
     }
 
