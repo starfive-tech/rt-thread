@@ -53,14 +53,13 @@ enum sw_mbox_channel_status
 };
 
 static struct rt_mutex plat_mutex;
-extern int ipi_init;
 int rpmsg_handler(void *param) /* maybe put this handler to thread */
 {
     struct gen_sw_mbox *base = (struct gen_sw_mbox *)get_rpmsg_mbox_base();
     unsigned long hart_mask = 0x2;
     uint32_t vector_id;
-   
-    ipi_init = 1;
+
+    env_set_ready();
     //rt_kprintf("int tx stat %d rx stat %d\n", base->tx_status[0], base->rx_status[0]);
 
     if (base->tx_status[RPMSG_DFT_CHANNEL] == S_DONE) {
@@ -175,7 +174,6 @@ void platform_cache_disable(void)
  */
 int32_t platform_init(void)
 {
-    rt_set_soft_handler(rpmsg_handler);
     gen_sw_mailbox_init((struct gen_sw_mbox *)get_rpmsg_mbox_base());
 
     if (rt_mutex_init(&plat_mutex, "rpmsg", 0) != RT_EOK)

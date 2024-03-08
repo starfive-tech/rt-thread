@@ -631,4 +631,7 @@ void env_tx_callback(uint32_t link_id);
 uint32_t env_vring_init(void *vr, unsigned int num, void *p,
 			      unsigned long align);
 
+int env_is_ready(void);
+void env_set_ready(void);
+
 #endif /* RPMSG_ENV_H_ */

@@ -39,6 +39,8 @@
 #define RL_ENV_MAX_MUTEX_COUNT (10)
 /* Max supported ISR counts */
 #define ISR_COUNT (32U)
+static int ipi_init;
+
 /*!
  * Structure to keep track of registered ISR's.
  */
@@ -66,7 +68,17 @@ static int32_t env_in_isr(void)
  * Utilize events to avoid busy loop implementation.
  *
  */
-int ipi_init; 
+int env_is_ready(void)
+{
+   return ipi_init;
+}
+
+void env_set_ready(void)
+{
+   if (!ipi_init)
+	ipi_init = 1;
+}
+
 uint32_t env_vring_init(void *vring, unsigned int num, void *p,
 			      unsigned long align)
 
@@ -98,7 +110,7 @@ uint32_t env_wait_for_link_up(volatile uint32_t *link_state, uint32_t link_id, u
     if (*link_state != 1U)
     {
 	while (1) {
-		if (ipi_init) {
+		if (env_is_ready()) {
 			*link_state = 1;
 			return 1;
 		}
