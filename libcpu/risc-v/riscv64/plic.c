@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include "plic.h"
 #include <riscv_io.h>
+#include <io.h>
 #include "encoding.h"
 
 #include <riscv.h>

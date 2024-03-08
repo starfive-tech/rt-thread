@@ -117,15 +117,33 @@ static inline rt_uint64_t __raw_readq(const volatile void *addr)
 
 #define readb(c)    ({ rt_uint8_t  __v; __io_br(); __v = __raw_readb(c); __io_ar(); __v; })
 #define readw(c)    ({ rt_uint16_t __v; __io_br(); __v = __raw_readw(c); __io_ar(); __v; })
-#define readl(c)    ({ rt_uint32_t __v; __io_br(); __v = __raw_readl(c); __io_ar(); __v; })
+//#define readl(c)    ({ rt_uint32_t __v; __io_br(); __v = __raw_readl(c); __io_ar(); __v; })
 
 #define writeb(v,c) ({ __io_bw(); __raw_writeb((v),(c)); __io_aw(); })
 #define writew(v,c) ({ __io_bw(); __raw_writew((v),(c)); __io_aw(); })
-#define writel(v,c) ({ __io_bw(); __raw_writel((v),(c)); __io_aw(); })
+//#define writel(v,c) ({ __io_bw(); __raw_writel((v),(c)); __io_aw(); })
 
 #if __riscv_xlen != 32
 #define readq(c)    ({ rt_uint64_t __v; __io_br(); __v = __raw_readq(c); __io_ar(); __v; })
 #define writeq(v,c) ({ __io_bw(); __raw_writeq((v),(c)); __io_aw(); })
 #endif
+
+#define sys_readb(c)    (__raw_readb((const volatile void *)c))
+#define sys_readw(c)    (__raw_readw((const volatile void *)c))
+#define sys_readl(c)    (__raw_readl((const volatile void *)c))
+
+#define sys_writeb(v,c) (__raw_writeb((v),((void *)c)))
+#define sys_writew(v,c) (__raw_writew((v),((void *)c)))
+#define sys_writel(v,c) (__raw_writel((v),((void *)c)))
+#define sys_modl(c, m, v) (__raw_writel(((__raw_readl((void *)c) & ~(m)) | ((v) & (m))), ((void *)c)))
+
+#define sys_clrbits(addr, clear) \
+    sys_writel(sys_readl(addr) & ~(clear), addr)
+
+#define sys_setbits(addr, set) \
+    sys_writel(sys_readl(addr) | (set), addr)
+
+#define sys_clrsetbits(addr, clear, set) \
+    sys_writel((sys_readl(addr) & ~(clear)) | (set), addr)
 
 #endif
