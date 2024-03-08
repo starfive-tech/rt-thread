@@ -21,7 +21,7 @@
 static volatile uint64_t time_elapsed = 0;
 static volatile unsigned long tick_cycles = 0;
 
-static uint64_t get_ticks()
+uint64_t get_ticks()
 {
     __asm__ __volatile__(
         "rdtime %0"

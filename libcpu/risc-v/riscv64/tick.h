@@ -13,5 +13,6 @@
 
 int tick_isr(void);
 int rt_hw_tick_init(void);
+uint64_t get_ticks();
 
 #endif
