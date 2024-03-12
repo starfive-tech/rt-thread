@@ -4,6 +4,7 @@ from building import *
 
 cwd     = GetCurrentDir()
 src     = ['board.c']
+src	+= ['jh7110.c']
 
 CPPPATH = [cwd]
 

@@ -1,0 +1,335 @@
+
+
+#include "rtconfig.h"
+
+#if defined(BSP_USING_GMAC)
+
+#include <rtthread.h>
+#include <rtdevice.h>
+#include <netif/ethernetif.h>
+#include <netif/etharp.h>
+#include <lwip/sys.h>
+#include <lwip/icmp.h>
+#include <lwip/pbuf.h>
+#include "lwipopts.h"
+#include "board.h"
+#include "interrupt.h"
+#include "hal_gmac.h"
+#include "hal_gmac_dwc_eth_qos.h"
+
+#if 0
+#define DBG_ENABLE
+//#undef  DBG_ENABLE
+#define DBG_LEVEL  LOG_LVL_INFO
+#define DBG_SECTION_NAME  "gmac"
+#define DBG_COLOR
+#include <rtdbg.h>
+#endif
+
+enum
+{
+    GMAC_START = -1,
+#if defined(BSP_USING_GMAC0)
+    GMAC0_IDX,
+#endif
+#if defined(BSP_USING_GMAC1)
+    GMAC1_IDX,
+#endif
+    GMAC_CNT,
+};
+
+struct gmac_lwip_pbuf {
+    struct pbuf_custom p;
+    void *buf;
+    gmac_handle_t *gmacdev;
+};
+
+/* Private variables ------------------------------------------------------------*/
+#if defined(BSP_USING_GMAC0)
+    LWIP_MEMPOOL_DECLARE(gmac0_rx, EQOS_DESCRIPTORS_RX, sizeof(struct gmac_lwip_pbuf), "GMAC0 RX PBUF pool");
+#endif
+
+#if defined(BSP_USING_GMAC1)
+    LWIP_MEMPOOL_DECLARE(gmac1_rx, EQOS_DESCRIPTORS_RX, sizeof(struct gmac_lwip_pbuf), "GMAC1 RX PBUF pool");
+#endif
+
+static gmac_handle_t dw_gmac[] =
+{
+#if defined(BSP_USING_GMAC0)
+{
+	.name		 =  "gmac0",
+	.id		 =  0,
+	.memp_rx_pool	 =  &memp_gmac0_rx,
+},
+#endif
+#if defined(BSP_USING_GMAC1)
+{
+	.name		 =  "gmac1",
+	.id		 =  1,
+	.memp_rx_pool	 =  &memp_gmac1_rx,
+},
+#endif
+};
+
+void sys_gmac_invalidate_cache_range(unsigned long start, unsigned long end){}
+void sys_gmac_flush_dcache_range(unsigned long start, unsigned long end) {}
+
+void dw_gmac_pkt_dump(const char *msg, const struct pbuf *p)
+{
+    rt_uint32_t i;
+    rt_uint8_t *ptr = p->payload;
+
+    DW_GMAC_TRACE("%s %d byte\n", msg, p->tot_len);
+
+    for (i = 0; i < p->tot_len; i++)
+    {
+        if ((i % 8) == 0)
+        {
+            DW_GMAC_TRACE("  ");
+        }
+        if ((i % 16) == 0)
+        {
+            DW_GMAC_TRACE("\r\n");
+        }
+        DW_GMAC_TRACE("%02x ", *ptr);
+        ptr++;
+    }
+    DW_GMAC_TRACE("\n\n");
+}
+
+void gmac_link_change(gmac_handle_t *dev,int up)
+{
+    if(up) {
+        rt_kprintf("link up\n");
+	eth_device_linkchange(&dev->eth, RT_TRUE);
+	dev->phy_dev->link_status = RT_TRUE;
+	rt_hw_plic_irq_enable(dev->gmac_config.irq);
+    }
+    else {
+        rt_kprintf("link down\n");
+	rt_hw_plic_irq_disable(dev->gmac_config.irq);
+	dev->phy_dev->link_status = RT_FALSE;
+        eth_device_linkchange(&dev->eth, RT_FALSE);
+    }
+}
+
+static void rt_hw_gmac_isr(int irq, void *arg)
+{
+    gmac_handle_t *gmac = (gmac_handle_t *)arg;
+    eqos_eth_dev_t *eqos_dev = gmac->priv;
+    rt_uint32_t status_dma_reg = 0;
+    int ret;
+
+    rt_ubase_t level = rt_hw_interrupt_disable();
+    ret = eqos_gmac_isr(eqos_dev);
+    if (ret < 0) {
+	rt_kprintf("isr: tx hard_error\n");
+	return;
+    }
+    if (ret & INT_RX) {
+	eth_device_ready(&gmac->eth);
+    }
+    rt_hw_interrupt_enable(level);
+}
+
+static rt_err_t dw_gmac_init(rt_device_t device)
+{
+    gmac_handle_t *gmac = (gmac_handle_t *)device;
+    rt_thread_t link_detect;
+    char gmac_name[8] = "gmac0";
+    int ret;
+    RT_ASSERT(device);
+
+    gmac = gmac_open(gmac);
+
+    if (!gmac)
+	return -RT_ERROR;
+
+    gmac_name[4] = '0' + gmac->id;
+    rt_hw_interrupt_install(gmac->gmac_config.irq, rt_hw_gmac_isr, gmac, gmac_name);
+    link_detect = rt_thread_create("link_detect",
+			    phy_link_detect,
+			    (void *)gmac,
+			    8192,
+			    13,
+			    20);
+
+    if (link_detect != RT_NULL)
+    {
+        rt_thread_startup(link_detect);
+    }
+
+    return 0;
+}
+
+static rt_err_t dw_gmac_open(rt_device_t dev, rt_uint16_t oflag)
+{
+    return RT_EOK;
+}
+
+static rt_err_t dw_gmac_close(rt_device_t dev)
+{
+    return RT_EOK;
+}
+
+static rt_ssize_t dw_gmac_read(rt_device_t dev, rt_off_t pos, void *buffer, rt_size_t size)
+{
+    rt_set_errno(-RT_ENOSYS);
+    return 0;
+}
+
+static rt_ssize_t dw_gmac_write(rt_device_t dev, rt_off_t pos, const void *buffer, rt_size_t size)
+{
+    rt_set_errno(-RT_ENOSYS);
+    return 0;
+}
+
+static rt_err_t dw_gmac_control(rt_device_t device, int cmd, void *args)
+{
+    gmac_handle_t *gmac = (gmac_handle_t *)device;
+    RT_ASSERT(device);
+
+    switch (cmd)
+    {
+    case NIOCTL_GADDR:
+        if (args)
+		rt_memcpy(args, &gmac->gmac_config.enetaddr[0], 6);
+        else
+		return -RT_ERROR;
+        break;
+    default :
+        break;
+    }
+
+    return RT_EOK;
+}
+
+void dw_gmac_pbuf_free(struct pbuf *p)
+{
+    struct gmac_lwip_pbuf *lwip_buf = (void *)p;
+    eqos_eth_dev_t *eqos_dev = (void *)lwip_buf->gmacdev->priv;
+
+    //SYS_ARCH_DECL_PROTECT(old_level);
+    //SYS_ARCH_PROTECT(old_level);
+    eqos_free_pkt(eqos_dev, lwip_buf->buf);
+    memp_free_pool(lwip_buf->gmacdev->memp_rx_pool, lwip_buf);
+    //SYS_ARCH_UNPROTECT(old_level);
+}
+
+static rt_err_t dw_gmac_tx(rt_device_t dev, struct pbuf *p)
+{
+    gmac_handle_t *gmac = (gmac_handle_t *)dev;
+    eqos_desc_t *tx_desc;
+    eqos_eth_dev_t *eqos_dev = (void *)gmac->priv;
+    struct pbuf *q;
+    void *dist;
+    int copy_offset = 0;
+
+    if (!gmac->phy_dev->link_status)
+	return -RT_ERROR;
+
+    tx_desc = &(eqos_dev->tx_descs[eqos_dev->tx_desc_idx]);
+
+    if (tx_desc->des3 & EQOS_DESC3_OWN) {
+	rt_kprintf("current tx discriptor not avail %d", eqos_dev->tx_desc_idx);
+	return -RT_ERROR;
+    }
+
+    LOG_DBG("gmac tx packet len %d total len %d\n", p->len, p->tot_len);
+
+    for(q = p;q != RT_NULL;q=q->next)
+    {
+        dist = eqos_dev->tx_dma_buf[eqos_dev->tx_desc_idx];
+        rt_memcpy(dist+copy_offset,q->payload,q->len);
+        copy_offset += q->len;
+
+        if(copy_offset > HAL_ETHERNET_MTU)
+        {
+            rt_kprintf("send data exceed max len copy_offset %d\n",copy_offset);
+            return -RT_ERROR;
+        }
+    }
+
+    return eqos_send(eqos_dev, copy_offset);
+
+}
+
+static struct pbuf *dw_gmac_rx(rt_device_t dev)
+{
+    gmac_handle_t *gmac = (gmac_handle_t *)dev;
+    eqos_eth_dev_t *eqos_dev = (void *)gmac->priv;
+    struct pbuf *pbuf = RT_NULL;
+    struct gmac_lwip_pbuf *lwip_buf;
+    int rx_index, pkt_len;
+    void *packetp;
+
+    if ((pkt_len = eqos_recv(eqos_dev, &rx_index)) > 0) {
+	LOG_DBG("gmac rx packet len %d\n", pkt_len);
+	packetp = eqos_dev->rx_dma_buf[rx_index];
+        lwip_buf = (void *)memp_malloc_pool(gmac->memp_rx_pool);
+	RT_ASSERT(lwip_buf);
+        {
+	    lwip_buf->p.custom_free_function = dw_gmac_pbuf_free;
+	    lwip_buf->buf	= packetp;
+	    lwip_buf->gmacdev = gmac;
+
+	    pbuf = pbuf_alloced_custom(PBUF_RAW,
+				   pkt_len,
+				   PBUF_REF,
+				   &lwip_buf->p,
+				   packetp,
+				   HAL_ETHERNET_MTU);
+	    if (pbuf == RT_NULL)
+	        rt_kprintf("%s: failed to alloted %08x\n", gmac->name, pbuf);
+         }
+    }
+    else {
+
+    }
+
+    return pbuf;
+}
+
+int rt_hw_gmac_init(void)
+{
+    int i;
+    rt_err_t ret = RT_EOK;
+    rt_thread_t link_detect;
+
+    for (i = (GMAC_START + 1); i < GMAC_CNT; i++)
+    {
+        gmac_handle_t *gmac = &dw_gmac[i];
+
+        /* Register member functions */
+        gmac->eth.parent.type       = RT_Device_Class_NetIf;
+        gmac->eth.parent.init       = dw_gmac_init;
+        gmac->eth.parent.open       = dw_gmac_open;
+        gmac->eth.parent.close      = dw_gmac_close;
+        gmac->eth.parent.read       = dw_gmac_read;
+        gmac->eth.parent.write      = dw_gmac_write;
+        gmac->eth.parent.control    = dw_gmac_control;
+        gmac->eth.parent.user_data  = gmac;
+        gmac->eth.eth_rx            = dw_gmac_rx;
+        gmac->eth.eth_tx            = dw_gmac_tx;
+
+        /* Set MAC address */
+        //nu_gmac_assign_macaddr(psNuGMAC);
+
+        /* Initial GMAC adapter */
+        //nu_gmac_adapter_init(psNuGMAC);
+
+        /* Initial zero_copy rx pool */
+        memp_init_pool(gmac->memp_rx_pool);
+	eth_device_linkchange(&gmac->eth, RT_FALSE);
+
+        /* Register eth device */
+        ret = eth_device_init(&gmac->eth, gmac->name);
+
+        RT_ASSERT(ret == RT_EOK);
+    }
+
+    return 0;
+}
+INIT_APP_EXPORT(rt_hw_gmac_init);
+#endif /* HAL_GMAC_ENABLED */
+

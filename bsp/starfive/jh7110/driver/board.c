@@ -16,6 +16,10 @@
 #include "mm_aspace.h"
 #include "tick.h"
 
+#if defined(BSP_USING_GMAC)
+#include "hal_gmac.h"
+#endif
+
 #include "drv_uart.h"
 #include "encoding.h"
 #include "sbi.h"
@@ -58,6 +62,7 @@ void primary_cpu_entry(void)
 #else
 #define IOREMAP_VEND 0ul
 #endif
+extern int (*hartid_to_plic_num)(int);
 
 #ifdef RISCV_DEFINE_PLIC_OFFSET
 int jh7110_hart_to_plic(int hart)

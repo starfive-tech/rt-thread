@@ -1,0 +1,82 @@
+#ifndef __BSP_JH7110_PLATFORM_H_
+#define __BSP_JH7110_PLATFORM_H_
+
+#define JH7110_PLL_OSC_RATE             24000000UL
+
+#define SYS_CRG_BASE		0x13020000
+#define AXI_CFG			0x1c
+#define STG_AXI_AHB		0x20
+#define GMAC1_CLK_AHB 		0x184
+#define GMAC1_CLK_AXI 		0x188
+#define GMAC_CLK_SRC 		0x18c
+#define GMAC1_CLK_GTXCLK	0x190
+#define GMAC1_CLK_RMII_RTX	0x194
+#define GMAC1_CLK_PTP		0x198
+#define	GMAC1_CLK_RX		0x19c
+#define GMAC1_CLK_RX_INV	0x1a0
+#define GMAC1_CLK_TX		0x1a4
+#define GMAC1_CLK_TX_INV	0x1a8
+#define GMAC1_CLK_GTXC		0x1ac
+#define GMAC0_CLK_GTX		0x1b0
+#define GMAC0_CLK_PTP		0x1b4
+#define GMAC_CLK_PHY		0x1b8
+#define GMAC0_CLK_GTXC		0x1bc
+#define SYS_CRG_RESET0		0x2f8
+#define SYS_CRG_RESET1		0x2fc
+#define SYS_CRG_RESET2		0x300
+#define GMAC_CLK_AXI_RST	BIT(2)
+#define GMAC_CLK_AHB_RST	BIT(3)
+#define SYS_CRG_RESET3		0x304
+
+#define SYS_SYSCON_BASE		0x13030000
+
+#define JH7110_PLL0_PD_OFFSET           0x18
+#define JH7110_PLL0_DACPD_SHIFT         24
+#define JH7110_PLL0_DACPD_MASK          BIT(24)
+#define JH7110_PLL0_DSMPD_SHIFT         25
+#define JH7110_PLL0_DSMPD_MASK          BIT(25)
+#define JH7110_PLL0_FBDIV_OFFSET        0x1c
+#define JH7110_PLL0_FBDIV_SHIFT         0
+#define JH7110_PLL0_FBDIV_MASK          GENMASK(11, 0)
+#define JH7110_PLL0_FRAC_OFFSET         0x20
+#define JH7110_PLL0_PREDIV_OFFSET       0x24
+
+#define JH7110_PLL1_PD_OFFSET           0x24
+#define JH7110_PLL1_DACPD_SHIFT         15
+#define JH7110_PLL1_DACPD_MASK          BIT(15)
+#define JH7110_PLL1_DSMPD_SHIFT         16
+#define JH7110_PLL1_DSMPD_MASK          BIT(16)
+#define JH7110_PLL1_FBDIV_OFFSET        0x24
+#define JH7110_PLL1_FBDIV_SHIFT         17
+#define JH7110_PLL1_FBDIV_MASK          GENMASK(28, 17)
+#define JH7110_PLL1_FRAC_OFFSET         0x28
+#define JH7110_PLL1_PREDIV_OFFSET       0x2c
+
+#define JH7110_PLL2_PD_OFFSET           0x2c
+#define JH7110_PLL2_DACPD_SHIFT         15
+#define JH7110_PLL2_DACPD_MASK          BIT(15)
+#define JH7110_PLL2_DSMPD_SHIFT         16
+#define JH7110_PLL2_DSMPD_MASK          BIT(16)
+#define JH7110_PLL2_FBDIV_OFFSET        0x2c
+#define JH7110_PLL2_FBDIV_SHIFT         17
+#define JH7110_PLL2_FBDIV_MASK          GENMASK(28, 17)
+#define JH7110_PLL2_FRAC_OFFSET         0x30
+#define JH7110_PLL2_PREDIV_OFFSET       0x34
+
+#define JH7110_PLL_FRAC_SHIFT           0
+#define JH7110_PLL_FRAC_MASK            GENMASK(23, 0)
+#define JH7110_PLL_POSTDIV1_SHIFT       28
+#define JH7110_PLL_POSTDIV1_MASK        GENMASK(29, 28)
+#define JH7110_PLL_PREDIV_SHIFT         0
+#define JH7110_PLL_PREDIV_MASK          GENMASK(5, 0)
+
+#define AON_CRG_BASE 0x17000000
+#define GMAC0_CLK_AHB		0x8
+#define GMAC0_CLK_AXI 		0xc
+#define GMAC0_CLK_RMII_RTX	0x10
+#define GMAC0_CLK_TX		0x14
+#define GMAC0_CLK_TX_INV	0x18
+#define	GMAC0_CLK_RX		0x18
+#define GMAC0_CLK_RX_INV	0x1c
+
+#endif

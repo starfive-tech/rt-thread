@@ -1,5 +1,21 @@
 menu "General Drivers Configuration"
 
+config BSP_USING_GMAC
+    bool "Enable gmac driver"
+    default n
+    select RT_USING_GMAC
+    if BSP_USING_GMAC
+    config BSP_USING_GMAC0
+        bool "Enable gmac 0"
+        default n
+    config BSP_USING_GMAC1
+        bool "Enable gmac1"
+        default n
+    config GMAC_DEBUG
+        bool "enable GMAC debug print"
+	default n
+    endif
+
 config BSP_USING_SPI
     bool "Enable spi driver"
     default n

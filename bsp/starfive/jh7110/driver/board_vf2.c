@@ -6,8 +6,11 @@
 #include "drv_uart.h"
 #include "encoding.h"
 #include "sbi.h"
+#if defined(BSP_USING_GMAC)
+#include "hal_gmac.h"
+#endif
 
-struct uart_config uart_config[] = {
+static struct uart_config uart_config[] = {
     {
         .hw_base = 0x10010000,
 	.remap_base = (void *)0x10010000,
@@ -21,6 +24,39 @@ struct uart_config uart_config[] = {
     },
 };
 
+#if defined(BSP_USING_GMAC)
+static struct phy_dts_config phy_dts[] = {
+    {
+	.rgmii_sw_dr_2 = 0x0,
+	.rgmii_sw_dr = 0x3,
+	.rgmii_sw_dr_rxc = 0x6,
+	.tx_delay_sel_fe = 5,
+	.tx_delay_sel = 0xa,
+	.rxc_dly_en = 0,
+	.rx_delay_sel = 0xa,
+	.tx_inverted_10 = 0x1,
+	.tx_inverted_100 = 0x1,
+	.tx_inverted_1000 = 0x1,
+    },
+    {
+	.rgmii_sw_dr_2 = 0x0,
+	.rgmii_sw_dr = 0x3,
+	.rgmii_sw_dr_rxc = 0x6,
+	.tx_delay_sel_fe = 5,
+	.tx_delay_sel = 0x0,
+	.rxc_dly_en = 0,
+	.rx_delay_sel = 0x2,
+	.tx_inverted_10 = 0x1,
+	.tx_inverted_100 = 0x1,
+	.tx_inverted_1000 = 0,
+    }
+};
+
+void gmac_set_board_config(gmac_handle_t *gmac)
+{
+    rt_memcpy(&gmac->phy_config, &phy_dts[gmac->id], sizeof(struct phy_dts_config));
+}
+#endif
 /*
  * UART Initiation
  */

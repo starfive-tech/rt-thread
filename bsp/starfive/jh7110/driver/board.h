@@ -36,4 +36,19 @@ void rt_plic_init(void);
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base();
 #endif
+void *get_ipi_handler();
+
+unsigned long sys_cur_time_ms(void);
+void sys_udelay(int us);
+void sys_mdelay(int ms);
+unsigned int sys_gmac_get_csr_clk(int id);
+void sys_gmac_invalidate_cache_range(unsigned long start, unsigned long end);
+void sys_gmac_flush_dcache_range(unsigned long start, unsigned long end);
+void sys_tick_sleep(unsigned int tick);
+
+#define ALIGN(addr, align) (((addr) + (align) - 1) & ~(align -1))
+#define BIT(bitnum) (1 << (bitnum % 32))
+#define GENMASK(h, l) \
+  (((~0UL) - (1UL << (l)) + 1) & (~0UL >> (64 - 1 - (h))))
+
 #endif
