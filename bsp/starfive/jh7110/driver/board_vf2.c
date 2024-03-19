@@ -73,7 +73,7 @@ struct uart_config *get_uart_config(int i)
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base()
 {
-	return (void *)0x6e400000;
+	return (void *)0x6e401000;
 }
 #endif
 
