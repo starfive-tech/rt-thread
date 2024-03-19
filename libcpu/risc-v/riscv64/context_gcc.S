@@ -15,57 +15,6 @@
 #include "cpuport.h"
 #include "stackframe.h"
 
-.macro PUSH_8 reg
-    addi    sp, sp, -8
-    STORE   \reg, (sp)
-.endm
-
-.macro POP_8 reg
-    LOAD    \reg, (sp)
-    addi    sp, sp, 8
-.endm
-
-.macro RESERVE_CONTEXT
-    PUSH_8  tp
-    PUSH_8  ra
-    PUSH_8  s0
-    PUSH_8  s1
-    PUSH_8  s2
-    PUSH_8  s3
-    PUSH_8  s4
-    PUSH_8  s5
-    PUSH_8  s6
-    PUSH_8  s7
-    PUSH_8  s8
-    PUSH_8  s9
-    PUSH_8  s10
-    PUSH_8  s11
-    csrr    s11, sstatus
-    li      s10, (SSTATUS_SPP)
-    or      s11, s11, s10
-    PUSH_8  s11
-.endm
-
-.macro RESTORE_CONTEXT
-    POP_8   s11
-    csrw    sstatus, s11
-    POP_8   s11
-    POP_8   s10
-    POP_8   s9
-    POP_8   s8
-    POP_8   s7
-    POP_8   s6
-    POP_8   s5
-    POP_8   s4
-    POP_8   s3
-    POP_8   s2
-    POP_8   s1
-    POP_8   s0
-    POP_8   ra
-    POP_8   tp
-    csrw    sepc, ra
-.endm
-
 /*
  * void rt_hw_context_switch_to(rt_ubase_t to);
  *
@@ -83,7 +32,7 @@ rt_hw_context_switch_to:
         jal lwp_aspace_switch
     #endif
 
-    RESTORE_CONTEXT
+    RESTORE_ALL
     sret
 
 /*
@@ -96,7 +45,16 @@ rt_hw_context_switch_to:
  */
 .globl rt_hw_context_switch
 rt_hw_context_switch:
-    RESERVE_CONTEXT
+    mv t2, sp
+    li t0, 0x120//set SPIE and SPP = 1
+    csrs sstatus, t0//if enter here,caller must be in system thread
+    csrw sepc, ra//return address
+    //saved from thread context
+    SAVE_ALL
+
+    STORE t2, 32 * REGBYTES(sp)//save user_sp
+
+
     STORE sp, (a0)
 
     // restore to thread SP
@@ -111,7 +69,7 @@ rt_hw_context_switch:
         jal lwp_aspace_switch
     #endif
 
-    RESTORE_CONTEXT
+    RESTORE_ALL
     sret
 
 #ifdef ENABLE_VECTOR

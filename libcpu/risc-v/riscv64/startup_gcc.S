@@ -88,11 +88,8 @@ _start:
     la   sp, __stack_start__
     li   t0, __STACKSIZE__
     add  sp, sp, t0
+    csrw sscratch, sp
 
-    /**
-     * sscratch is always zero on kernel mode
-     */
-    csrw sscratch, zero
     call init_bss
     call sbi_init
     j primary_cpu_entry

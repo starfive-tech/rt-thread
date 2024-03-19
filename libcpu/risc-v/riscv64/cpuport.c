@@ -34,28 +34,6 @@ volatile rt_ubase_t rt_interrupt_to_thread = 0;
  *
  */
 volatile rt_ubase_t rt_thread_switch_interrupt_flag = 0;
-
-void *_rt_hw_stack_init(rt_ubase_t *sp, rt_ubase_t ra, rt_ubase_t sstatus)
-{
-    (*--sp) = 0;                                /* tp */
-    (*--sp) = ra;                               /* ra */
-    (*--sp) = 0;                                /* s0(fp) */
-    (*--sp) = 0;                                /* s1 */
-    (*--sp) = 0;                                /* s2 */
-    (*--sp) = 0;                                /* s3 */
-    (*--sp) = 0;                                /* s4 */
-    (*--sp) = 0;                                /* s5 */
-    (*--sp) = 0;                                /* s6 */
-    (*--sp) = 0;                                /* s7 */
-    (*--sp) = 0;                                /* s8 */
-    (*--sp) = 0;                                /* s9 */
-    (*--sp) = 0;                                /* s10 */
-    (*--sp) = 0;                                /* s11 */
-    (*--sp) = sstatus;                          /* sstatus */
-
-    return (void *)sp;
-}
-
 /**
  * This function will initialize thread stack, we assuming
  * when scheduler restore this new thread, context will restore
@@ -74,17 +52,38 @@ rt_uint8_t *rt_hw_stack_init(void *tentry,
                              rt_uint8_t *stack_addr,
                              void *texit)
 {
-    rt_ubase_t *sp = (rt_ubase_t *)stack_addr;
-    // we use a strict alignment requirement for Q extension
-    sp = (rt_ubase_t *)RT_ALIGN_DOWN((rt_ubase_t)sp, 16);
+    struct rt_hw_stack_frame *frame;
+    rt_uint8_t         *stk;
+    int                i;
+    extern int __global_pointer$;
 
-    (*--sp) = (rt_ubase_t)tentry;
-    (*--sp) = (rt_ubase_t)parameter;
-    (*--sp) = (rt_ubase_t)texit;
+    stk  = stack_addr + sizeof(rt_ubase_t);
+    stk  = (rt_uint8_t *)RT_ALIGN_DOWN((rt_ubase_t)stk, REGBYTES);
+    stk -= sizeof(struct rt_hw_stack_frame);
 
+    frame = (struct rt_hw_stack_frame *)stk;
+
+    for (i = 0; i < sizeof(struct rt_hw_stack_frame) / sizeof(rt_ubase_t); i++)
+    {
+        ((rt_ubase_t *)frame)[i] = 0xdeadbeef;
+    }
     /* compatible to RESTORE_CONTEXT */
-    extern void _rt_thread_entry(void);
-    return (rt_uint8_t *)_rt_hw_stack_init(sp, (rt_ubase_t)_rt_thread_entry, K_SSTATUS_DEFAULT);
+    //extern void _rt_thread_entry(void);
+
+    frame->ra      = (rt_ubase_t)texit;
+    frame->gp      = (rt_ubase_t)&__global_pointer$;
+    frame->a0      = (rt_ubase_t)parameter;
+    frame->epc     = (rt_ubase_t)tentry;
+    //frame->epc	   = (rt_ubase_t )_rt_thread_entry;
+    frame->user_sp_exc_stack = (rt_ubase_t)(((rt_ubase_t)stk) + sizeof(struct rt_hw_stack_frame));
+
+	//frame->sstatus = K_SSTATUS_DEFAULT;
+#ifdef ENABLE_FPU
+    frame->sstatus = 0x00046120;    /* enable FPU */
+#else
+    frame->sstatus = 0x00040120;
+#endif
+    return stk;
 }
 
 /*
