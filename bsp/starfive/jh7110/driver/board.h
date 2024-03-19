@@ -33,6 +33,7 @@ void rt_hw_board_init(void);
 void rt_init_user_mem(struct rt_thread *thread, const char *name,
                       unsigned long *entry);
 void rt_plic_init(void);
+void *get_rpmsg_sharemem_base();
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base();
 #endif
