@@ -359,4 +359,8 @@
 
 #define BSP_USING_RPMSG_LITE
 
+/* Application Configuration */
+
+#define USING_RPMSG_ECHO_TEST
+
 #endif

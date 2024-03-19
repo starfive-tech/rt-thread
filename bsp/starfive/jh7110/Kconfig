@@ -69,3 +69,4 @@ config __STACKSIZE__
 
 source "../libraries/driver/Kconfig"
 source "../libraries/component/Kconfig"
+source "applications/Kconfig"

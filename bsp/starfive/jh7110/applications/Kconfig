@@ -1,0 +1,8 @@
+menu "Application Configuration"
+
+config USING_RPMSG_ECHO_TEST
+    bool "Enable RPMSG_ECHO_TEST"
+    default n
+
+endmenu
+
