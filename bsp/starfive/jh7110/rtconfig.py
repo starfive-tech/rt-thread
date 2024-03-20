@@ -13,7 +13,7 @@ if os.getenv('RTT_CC'):
 
 if  CROSS_TOOL == 'gcc':
     PLATFORM    = 'gcc'
-    EXEC_PATH   = r'/home/minda/toolchain/riscv/bin'
+    EXEC_PATH   = r'/opt/riscv/bin'
 else:
     print('Please make sure your toolchains is GNU GCC!')
     exit(0)
