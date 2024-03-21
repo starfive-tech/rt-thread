@@ -290,6 +290,17 @@ static struct pbuf *dw_gmac_rx(rt_device_t dev)
     return pbuf;
 }
 
+static void get_gmac_addr_from_sharemem(gmac_handle_t *gmac, int index)
+{
+    void *base = get_rpmsg_sharemem_base();
+    const char *addr = gmac->gmac_config.enetaddr;
+
+    if (index == 0)
+	rt_memcpy(gmac->gmac_config.enetaddr, base, 6);
+    else if (index == 1)
+	rt_memcpy(gmac->gmac_config.enetaddr, base + 8, 6);
+}
+
 int rt_hw_gmac_init(void)
 {
     int i;
@@ -322,6 +333,7 @@ int rt_hw_gmac_init(void)
         memp_init_pool(gmac->memp_rx_pool);
 	eth_device_linkchange(&gmac->eth, RT_FALSE);
 
+	get_gmac_addr_from_sharemem(gmac, gmac->id);
         /* Register eth device */
         ret = eth_device_init(&gmac->eth, gmac->name);
 

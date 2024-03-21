@@ -212,20 +212,6 @@ static struct gmac_config gmac_config[] = {
     },
 };
 
-static get_gmac_addr_from_sharemem(gmac_handle_t *gmac, int index)
-{
-    void *base = get_rpmsg_sharemem_base();
-    const char *addr = gmac->gmac_config.enetaddr;
-
-    if (index == 0)
-	rt_memcpy(gmac->gmac_config.enetaddr, base, 6);
-    else if (index == 1)
-	rt_memcpy(gmac->gmac_config.enetaddr, base + 8, 6);
-
-    //rt_kprintf("mac addr %02x %02x %02x %02x %02x %02x\n", addr[0],
-		//addr[1],  addr[2],  addr[3],  addr[4],  addr[5]);
-}
-
 void gmac_plat_init(gmac_handle_t *gmac)
 {
     if (gmac->id == 0) {
@@ -244,7 +230,6 @@ void gmac_plat_init(gmac_handle_t *gmac)
 	rt_memcpy(&gmac->gmac_config, &gmac_config[1], sizeof(struct gmac_config));
     }
     /* todo  get mac addr from share ram gmac 1*/
-    get_gmac_addr_from_sharemem(gmac, gmac->id);
     gmac_set_board_config(gmac);
 }
 #endif
