@@ -330,7 +330,7 @@ int genric_gmac_phy_init(gmac_handle_t * handle)
     if (!dev)
 	return -RT_ERROR;
 
-    rt_memset(dev, 0, sizeof(struct gmac_dev));
+    memset(dev, 0, sizeof(struct gmac_dev));
     dev->advertising = PHY_GBIT_FEATURES;
     dev->supported = PHY_GBIT_FEATURES;
 

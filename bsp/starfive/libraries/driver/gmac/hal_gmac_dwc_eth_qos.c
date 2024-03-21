@@ -765,7 +765,7 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
 
     /* Set up descriptors */
 
-    rt_memset(eqos_dev->descs, 0, EQOS_DESCRIPTORS_SIZE);
+    memset(eqos_dev->descs, 0, EQOS_DESCRIPTORS_SIZE);
     for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
         struct eqos_desc *rx_desc = &(eqos_dev->rx_descs[i]);
         rx_desc->des0 = (rt_uint32_t)(unsigned long)(eqos_dev->rx_dma_buf[i]);
@@ -844,7 +844,7 @@ gmac_handle_t* gmac_open(gmac_handle_t *gmac)
     phy_rt_dev = &phy_dev->parent;
 #endif
     //rt_memset(gmac, 0, sizeof(gmac_handle_t));
-    rt_memset(eqos_dev, 0, sizeof(eqos_eth_dev_t));
+    memset(eqos_dev, 0, sizeof(eqos_eth_dev_t));
 
     gmac->priv = eqos_dev;
     gmac_plat_init(gmac);
@@ -903,7 +903,7 @@ int gmac_set_macaddr(gmac_handle_t *gmac, const uint8_t *mac_id)
         return -1;
     }
 
-    rt_memcpy(gmac->gmac_config.enetaddr, mac_id, sizeof(gmac->gmac_config.enetaddr));
+    memcpy(gmac->gmac_config.enetaddr, mac_id, sizeof(gmac->gmac_config.enetaddr));
     eqos_eth_trans_ctrl(gmac->priv, 0);
     eqos_write_hwaddr(gmac->priv, mac_id);
     eqos_eth_trans_ctrl(gmac->priv, 1);
