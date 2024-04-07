@@ -4,6 +4,8 @@
 #define JH7110_PLL_OSC_RATE             24000000UL
 
 #define SYS_CRG_BASE		0x13020000
+#define PERI_ROOT		0x10
+#define BUS_ROOT		0x14
 #define AXI_CFG			0x1c
 #define STG_AXI_AHB		0x20
 #define GMAC1_CLK_AHB 		0x184
@@ -21,6 +23,12 @@
 #define GMAC0_CLK_PTP		0x1b4
 #define GMAC_CLK_PHY		0x1b8
 #define GMAC0_CLK_GTXC		0x1bc
+#define CAN0_CTRL_CLK_APB	0x1cc
+#define CAN0_CTRL_CLK_TIMER	0x1d0
+#define CAN0_CTRL_CLK_CORE	0x1d4
+#define CAN1_CTRL_CLK_APB	0x1d8
+#define CAN1_CTRL_CLK_TIMER	0x1dc
+#define CAN1_CTRL_CLK_CORE	0x1e0
 #define SYS_CRG_RESET0		0x2f8
 #define SYS_CRG_RESET1		0x2fc
 #define SYS_CRG_RESET2		0x300
@@ -30,6 +38,7 @@
 
 #define SYS_SYSCON_BASE		0x13030000
 
+#define CAN0_FD_OFFSET			0x10
 #define JH7110_PLL0_PD_OFFSET           0x18
 #define JH7110_PLL0_DACPD_SHIFT         24
 #define JH7110_PLL0_DACPD_MASK          BIT(24)
@@ -63,12 +72,19 @@
 #define JH7110_PLL2_FRAC_OFFSET         0x30
 #define JH7110_PLL2_PREDIV_OFFSET       0x34
 
+#define CAN1_FD_OFFSET			0x88
+
 #define JH7110_PLL_FRAC_SHIFT           0
 #define JH7110_PLL_FRAC_MASK            GENMASK(23, 0)
 #define JH7110_PLL_POSTDIV1_SHIFT       28
 #define JH7110_PLL_POSTDIV1_MASK        GENMASK(29, 28)
 #define JH7110_PLL_PREDIV_SHIFT         0
 #define JH7110_PLL_PREDIV_MASK          GENMASK(5, 0)
+
+#define SYS_IOMUX_BASE		0x13040000
+#define OUTEN_BASE		0x0
+#define OUTPUT_BASE		0x40
+#define INPUT_BASE		0x80
 
 #define AON_CRG_BASE 0x17000000
 #define GMAC0_CLK_AHB		0x8

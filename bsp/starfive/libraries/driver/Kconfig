@@ -6,7 +6,7 @@ config BSP_USING_GMAC
     select RT_USING_GMAC
     if BSP_USING_GMAC
     config BSP_USING_GMAC0
-        bool "Enable gmac 0"
+        bool "Enable gmac0"
         default n
     config BSP_USING_GMAC1
         bool "Enable gmac1"
@@ -14,6 +14,20 @@ config BSP_USING_GMAC
     config GMAC_DEBUG
         bool "enable GMAC debug print"
 	default n
+    endif
+
+config BSP_USING_CAN
+    bool "Enable can driver"
+    default n
+    select RT_USING_CAN
+    select RT_CAN_USING_CANFD
+    if BSP_USING_CAN
+    config BSP_USING_CAN0
+        bool "Enable CAN 0"
+        default n
+    config BSP_USING_CAN1
+        bool "Enable CAN 1"
+        default n
     endif
 
 config BSP_USING_SPI

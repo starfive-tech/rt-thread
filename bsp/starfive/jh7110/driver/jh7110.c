@@ -12,10 +12,17 @@
 #if defined(BSP_USING_GMAC)
 #include "hal_gmac.h"
 #endif
+#if defined(BSP_USING_CAN)
+#include "hal_can.h"
+#endif
 
 static rt_uint64_t sys_crg_base;
 static rt_uint64_t sys_syscon_base;
 static rt_uint64_t aon_crg_base;
+unsigned long sys_iomux_base;
+
+#define ROUNDUP(a, b) ((((a)-1)/(b) +1)*(b))
+#define CAN_DEAULT_RATE 40000000
 
 struct jh7110_pll_regvals {
         rt_uint32_t dacpd;
@@ -91,10 +98,12 @@ static void jh7110_syscon_init()
 	sys_crg_base = rt_ioremap(SYS_CRG_BASE, 4096);
 	sys_syscon_base = rt_ioremap(SYS_SYSCON_BASE, 4096);
 	aon_crg_base = rt_ioremap(AON_CRG_BASE, 4096);
+	sys_iomux_base = rt_ioremap(SYS_IOMUX_BASE, 4096);
 #else
 	sys_crg_base = SYS_CRG_BASE;
 	sys_syscon_base = SYS_SYSCON_BASE;
 	aon_crg_base = AON_CRG_BASE;
+	sys_iomux_base = SYS_IOMUX_BASE;
 #endif
 }
 
@@ -145,9 +154,18 @@ unsigned long jh7110_pll_get_rate(int index)
         return rate;
 }
 
-unsigned long get_axi_cfg_rate(void)
+unsigned long get_bus_root_rate(void)
 {
 	unsigned long rate = jh7110_pll_get_rate(2);
+	int div;
+
+	div = sys_readl(sys_crg_base + PERI_ROOT) >> 24;
+	return rate / div;
+}
+
+unsigned long get_axi_cfg_rate(void)
+{
+	unsigned long rate = get_bus_root_rate();
 	rt_uint32_t div;
 
 	div = sys_readl(sys_crg_base + AXI_CFG) & GENMASK(23, 0);
@@ -163,6 +181,15 @@ unsigned long get_stg_axi_ahb_rate(void)
 	return rate / div;
 }
 
+unsigned long get_peri_root_rate(void)
+{
+	unsigned long rate = get_bus_root_rate();
+	int div;
+
+	div = sys_readl(sys_crg_base + PERI_ROOT) & GENMASK(23, 0);
+	return rate / div;
+}
+
 unsigned long sys_cur_time_ms(void)
 {
 	return get_ticks() / (CPUTIME_TIMER_FREQ / 1000);
@@ -170,7 +197,7 @@ unsigned long sys_cur_time_ms(void)
 
 void sys_udelay(int us)
 {
-   int us_cnt;
+   rt_uint64_t us_cnt;
 
    us_cnt = CPUTIME_TIMER_FREQ / 1000000 * us;
    us_cnt = get_ticks() + us_cnt;
@@ -179,9 +206,9 @@ void sys_udelay(int us)
 
 void sys_mdelay(int ms)
 {
-   int ms_cnt;
+   rt_uint64_t ms_cnt;
 
-   ms_cnt = CPUTIME_TIMER_FREQ / 100 * ms;
+   ms_cnt = CPUTIME_TIMER_FREQ / 1000 * ms;
    ms_cnt = get_ticks() + ms_cnt;
    while (get_ticks() < ms_cnt);
 }
@@ -231,6 +258,49 @@ void gmac_plat_init(gmac_handle_t *gmac)
     }
     /* todo  get mac addr from share ram gmac 1*/
     gmac_set_board_config(gmac);
+}
+#endif
+
+#if defined(BSP_USING_CAN)
+void can_plat_init(struct ipms_canfd *ipms)
+{
+    unsigned int root_rate = get_peri_root_rate();
+    unsigned int div;
+    int can_rate = CAN_DEAULT_RATE;
+
+    ipms->cfg.clk_freq = can_rate;
+
+    root_rate = ROUNDUP(root_rate, div);
+    div = root_rate / can_rate;
+
+    can_set_board_config(ipms);
+    if (ipms->index == 0) {
+#ifdef RT_USING_SMART
+	ipms->base = rt_ioremap(0x130d0000, 0x4000);
+#else
+	ipms->base  = (void *)0x130d0000;
+#endif
+	ipms->irq = 112;
+	sys_setbits(sys_crg_base + CAN0_CTRL_CLK_APB, BIT(31));
+	sys_setbits(sys_crg_base + CAN0_CTRL_CLK_TIMER, BIT(31));
+	sys_setbits(sys_crg_base + CAN0_CTRL_CLK_CORE, BIT(31) | div);
+	if (ipms->cfg.is_canfd) {
+	    sys_setbits(sys_syscon_base + CAN0_FD_OFFSET, BIT(3));
+	}
+    } else {
+#ifdef RT_USING_SMART
+	ipms->base = rt_ioremap(0x130e0000, 0x4000);
+#else
+	ipms->base = (void *)0x130e0000;
+#endif
+	ipms->irq = 113;
+	sys_setbits(sys_crg_base + CAN1_CTRL_CLK_APB, BIT(31));
+	sys_setbits(sys_crg_base + CAN1_CTRL_CLK_TIMER, BIT(31));
+	sys_setbits(sys_crg_base + CAN1_CTRL_CLK_CORE, BIT(31) | div);
+	if (ipms->cfg.is_canfd) {
+	    sys_setbits(sys_syscon_base + CAN1_FD_OFFSET, BIT(18));
+	}
+    }
 }
 #endif
 

@@ -15,4 +15,7 @@ list = os.listdir(cwd)
 if GetDepend('BSP_USING_GMAC'):
      objs = objs + SConscript(os.path.join('gmac', 'SConscript'))
 
+if GetDepend('BSP_USING_CAN'):
+     objs = objs + SConscript(os.path.join('can', 'SConscript'))
+
 Return('objs')

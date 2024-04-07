@@ -11,6 +11,19 @@
 #endif
 
 static struct uart_config uart_config[] = {
+#ifdef BSP_USING_DEVKITS
+    {
+        .hw_base = 0x10010000,
+	.remap_base = (void *)0x10010000,
+	.irqno = 33,
+        .uart8250_in_freq = 24000000,
+        .uart8250_baudrate = 115200,
+        .uart8250_reg_width = 4,
+        .uart8250_reg_shift = 2,
+        .index = 1,
+        .control_uart = 0,
+    },
+#endif
     {
         .hw_base = 0x10020000,
 	.remap_base = (void *)0x10020000,
