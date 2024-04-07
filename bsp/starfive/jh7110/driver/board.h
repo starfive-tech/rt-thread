@@ -52,4 +52,8 @@ void sys_tick_sleep(unsigned int tick);
 #define GENMASK(h, l) \
   (((~0UL) - (1UL << (l)) + 1) & (~0UL >> (64 - 1 - (h))))
 
+#define hal_printf rt_kprintf
+#define hal_malloc rt_malloc
+#define hal_free   rt_free
+
 #endif

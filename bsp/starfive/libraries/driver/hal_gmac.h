@@ -119,10 +119,6 @@ int gmac_phy_init(gmac_handle_t *handle);
 int genric_gmac_phy_init(gmac_handle_t * handle);
 void gmac_link_change(gmac_handle_t *dev,int up);
 
-#define hal_printf rt_kprintf
-#define hal_malloc rt_malloc
-#define hal_free   rt_free
-
 #if defined(GMAC_DEBUG)
     #define DW_GMAC_TRACE         rt_kprintf
     #define LOG_DBG rt_kprintf
