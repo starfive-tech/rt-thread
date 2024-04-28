@@ -136,7 +136,7 @@ void sbi_send_ipi(const unsigned long *hart_mask, int type, int hbase)
     /* Use the IPI legacy replacement extension, if available. */
     if (has_ipi_extension)
     {
-        ret = SBI_CALL2(SBI_EXT_ID_IPI, SBI_IPI_SEND_IPI_EXT, *hart_mask, hbase);
+        ret = SBI_CALL3(SBI_EXT_ID_IPI, SBI_IPI_SEND_IPI_EXT, 0, hbase, type);
         RT_ASSERT(ret.error == SBI_SUCCESS);
     }
     else
