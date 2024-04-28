@@ -6,6 +6,7 @@
 #include "board.h"
 #include <riscv_io.h>
 #include "tick.h"
+#include "drv_uart.h"
 #ifdef BSP_USING_RPMSG_LITE
 #include "rpmsg_platform.h"
 #endif
@@ -313,11 +314,28 @@ void *get_ipi_handler()
 #endif
 }
 
+static void jh7110_uart_init()
+{
+    struct uart_config *conf;
+    int i;
+
+    for (i = 0; i < get_uart_config_num(); i++) {
+	conf = get_uart_config(i);
+	if (conf->index == 2) {
+	    sys_setbits(sys_crg_base + CLK_UART2_APB_OFFSET, BIT(31));
+	    sys_setbits(sys_crg_base + CLK_UART2_CORE_OFFSET, BIT(31));
+	    sys_clrsetbits(sys_crg_base + SYS_CRG_RESET2,
+			BIT(23) | BIT(24), 0);
+	}
+   }
+}
+
 int jh7110_init()
 {
     while (!env_is_ready());
 
     jh7110_syscon_init();
+    jh7110_uart_init();
 #ifdef BSP_USING_GMAC1
     gmac1_plat_init();
 #endif

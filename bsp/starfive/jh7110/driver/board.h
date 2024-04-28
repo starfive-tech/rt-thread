@@ -38,6 +38,7 @@ void *get_rpmsg_sharemem_base();
 void *get_rpmsg_mbox_base();
 #endif
 void *get_ipi_handler();
+int get_uart_config_num();
 
 unsigned long sys_cur_time_ms(void);
 void sys_udelay(int us);
