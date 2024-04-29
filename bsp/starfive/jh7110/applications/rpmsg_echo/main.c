@@ -163,4 +163,3 @@ int rpmsg_test(void)
 
     return RT_EOK;
 }
-INIT_APP_EXPORT(rpmsg_test);

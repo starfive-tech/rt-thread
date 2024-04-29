@@ -330,16 +330,26 @@ static void jh7110_uart_init()
    }
 }
 
-int jh7110_init()
+static void jh7110_env_init(void)
 {
-    while (!env_is_ready());
-
     jh7110_syscon_init();
     jh7110_uart_init();
-#ifdef BSP_USING_GMAC1
+}
+
+void jh7110_driver_init(void)
+{
+    while (!env_is_ready()) {
+	rt_schedule();
+    }
+
+    jh7110_env_init();
+#if defined(BSP_USING_GMAC)
+#if defined(BSP_USING_GMAC1)
     gmac1_plat_init();
 #endif
-    return 0;
+    rt_hw_gmac_init();
+#endif
+#if defined(BSP_USING_CAN)
+    rt_hw_canfd_init();
+#endif
 }
-INIT_ENV_EXPORT(jh7110_init);
-

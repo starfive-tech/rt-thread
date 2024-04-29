@@ -342,6 +342,5 @@ int rt_hw_gmac_init(void)
 
     return 0;
 }
-INIT_APP_EXPORT(rt_hw_gmac_init);
 #endif /* HAL_GMAC_ENABLED */
 

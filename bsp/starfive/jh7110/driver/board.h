@@ -40,6 +40,13 @@ void *get_rpmsg_mbox_base();
 void *get_ipi_handler();
 int get_uart_config_num();
 
+#if defined(BSP_USING_GMAC)
+int rt_hw_gmac_init(void);
+#endif
+#if defined(BSP_USING_CAN)
+int rt_hw_canfd_init(void);
+#endif
+
 unsigned long sys_cur_time_ms(void);
 void sys_udelay(int us);
 void sys_mdelay(int ms);

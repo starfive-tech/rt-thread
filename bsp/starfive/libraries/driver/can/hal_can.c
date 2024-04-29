@@ -324,5 +324,4 @@ static int rt_hw_canfd_init(void)
 
     return (int)ret;
 }
-INIT_APP_EXPORT(rt_hw_canfd_init);
 //#endif
