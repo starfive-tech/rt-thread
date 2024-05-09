@@ -65,6 +65,5 @@ void *platform_patova(uintptr_t addr);
 /* platform init/deinit */
 int32_t platform_init(void);
 int32_t platform_deinit(void);
-int rpmsg_handler(void *param);
-
+int rpmsg_handler(unsigned long);
 #endif /* RPMSG_PLATFORM_H_ */

@@ -30,7 +30,7 @@
 #define DBG_TAG "libcpu.trap"
 #define DBG_LVL DBG_INFO
 #include <rtdbg.h>
-int (*soft_interrupt_handler)(void *);
+int (*soft_interrupt_handler)(unsigned long);
 
 void dump_regs(struct rt_hw_stack_frame *regs)
 {
@@ -280,7 +280,7 @@ static void handle_nested_trap_panic(
 #define IN_USER_SPACE (stval >= USER_VADDR_START && stval < USER_VADDR_TOP)
 #define PAGE_FAULT (id == EP_LOAD_PAGE_FAULT || id == EP_STORE_PAGE_FAULT)
 
-void rt_set_soft_handler(int (*handler)(void *))
+void rt_set_soft_handler(int (*handler)(unsigned long))
 {
     soft_interrupt_handler = handler;
 }
@@ -291,6 +291,7 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
     ENTER_TRAP;
     rt_size_t id = __MASKVALUE(scause, __MASK(63UL));
     const char *msg;
+    unsigned long msg_type;
 
     /* supervisor external interrupt */
     if (scause == (uint64_t)(0x8000000000000005))
@@ -312,12 +313,12 @@ void handle_trap(rt_size_t scause, rt_size_t stval, rt_size_t sepc, struct rt_hw
     }
     else if (scause == (uint64_t)(0x8000000000000001)) /* soft interrupt */
     {
-	sbi_clear_ipi(); /* clear and get type */
+	msg_type = sbi_clear_ipi_ext(); /* clear and get type */
 
 	rt_interrupt_enter();
 
 	if (soft_interrupt_handler)
-		soft_interrupt_handler(NULL);
+		soft_interrupt_handler(msg_type);
 
 	rt_interrupt_leave();
     }

@@ -53,8 +53,9 @@ enum sw_mbox_channel_status
 };
 
 static struct rt_mutex plat_mutex;
-int rpmsg_handler(void *param) /* maybe put this handler to thread */
+int rpmsg_handler(unsigned long param) /* maybe put this handler to thread */
 {
+
     struct gen_sw_mbox *base = (struct gen_sw_mbox *)get_rpmsg_mbox_base();
     unsigned long hart_mask = 0x2;
     uint32_t vector_id;

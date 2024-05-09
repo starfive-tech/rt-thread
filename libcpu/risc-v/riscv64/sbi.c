@@ -150,6 +150,14 @@ void sbi_clear_ipi(void)
 	SBI_CALL0(SBI_CLEAR_IPI, 0);
 }
 
+unsigned long sbi_clear_ipi_ext(void)
+{
+	unsigned long msg_type;
+
+	SBI_CALL1(SBI_EXT_ID_IPI, SBI_IPI_CLEAR_IPI_EXT, (uint64_t)&msg_type);
+	return msg_type;
+}
+
 void sbi_remote_fence_i(const unsigned long *hart_mask)
 {
     struct sbi_ret ret;

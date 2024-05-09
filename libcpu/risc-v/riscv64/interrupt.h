@@ -42,5 +42,5 @@ void rt_hw_interrupt_init(void);
 void rt_hw_interrupt_mask(int vector);
 rt_isr_handler_t rt_hw_interrupt_install(int vector, rt_isr_handler_t handler, void *param, const char *name);
 void handle_trap(rt_size_t xcause, rt_size_t xtval, rt_size_t xepc, struct rt_hw_stack_frame *sp);
-void rt_set_soft_handler(int (*handler)(void *));
+void rt_set_soft_handler(int (*handler)(unsigned long));
 #endif
