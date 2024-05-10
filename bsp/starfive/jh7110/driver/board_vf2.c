@@ -91,7 +91,13 @@ void *get_rpmsg_sharemem_base()
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base()
 {
-	return (void *)0x6e401000;
+	return (void *)0x6e402000;
 }
+
+void *get_rpmsg_base(void)
+{
+	return (void *)0x6e404000;
+}
+
 #endif
 

@@ -110,10 +110,8 @@ uint32_t env_wait_for_link_up(volatile uint32_t *link_state, uint32_t link_id, u
     if (*link_state != 1U)
     {
 	while (1) {
-		if (env_is_ready()) {
-			*link_state = 1;
-			return 1;
-		}
+		if (*link_state)
+			break;
 		rt_schedule();
 	}
     }
@@ -140,12 +138,18 @@ void env_tx_callback(uint32_t link_id)
  * Initializes OS/BM environment.
  *
  */
+int rpmsg_init;
 int32_t env_init(void)
 {
     int32_t retval;
 
+    if (rpmsg_init)
+        return 0;
+
     retval = platform_init();
 
+    if (!rpmsg_init)
+	rpmsg_init = 1;
     return retval;
 }
 

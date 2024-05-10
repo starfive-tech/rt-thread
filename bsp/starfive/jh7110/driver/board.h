@@ -36,6 +36,7 @@ void rt_plic_init(void);
 void *get_rpmsg_sharemem_base();
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base();
+void *get_rpmsg_base(void);
 #endif
 void *get_ipi_handler();
 int get_uart_config_num();

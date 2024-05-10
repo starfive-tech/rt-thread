@@ -1,6 +1,5 @@
 /*
  *
- * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <stdio.h>
@@ -9,112 +8,95 @@
 #include "rpmsg_env.h"
 #include <rthw.h>
 #include <rtdevice.h>
+#include <rtatomic.h>
 #include <interrupt.h>
 #include "board.h"
 
-/*
- * Generic software mailbox Registers:
- *
- * RX_STATUS[n]: RX channel n status
- * TX_STATUS[n]: TX channel n status
- * 	0: indicates message in T/RX_CH[n] is invalid and channel ready.
- * 	1: indicates message in T/RX_CH[n] is valid and channel busy.
- * 	2: indicates message in T/RX_CH[n] has been received by the peer.
- * RX_CH[n]: Receive data register for channel n
- * TX_CH[n]: Transmit data register for channel n
- *
- * To send a message:
- * Update the data register TX_CH[n] with the message, then set the
- * TX_STATUS[n] to 1, inject a interrupt to remote side; after the
- * transmission done set the TX_STATUS[n] back to 0.
- *
- * When received a message:
- * Get the received data from RX_CH[n] and then set the RX_STATUS[n] to
- * 2 and inject a interrupt to notify the remote side transmission done.
- */
+#define IPI_MB_CHANS		2
+#define MAX_DEV_PER_CHAN	8
 
-#define MAX_CH (16)
-#define RPMSG_DFT_CHANNEL 0
+#define RX_MBOX_OFFSET		0x400
 
-struct gen_sw_mbox
-{
-    uint32_t tx_status[MAX_CH];
-    uint32_t rx_status[MAX_CH];
-    uint32_t reserved[MAX_CH];
-    uint32_t tx_ch[MAX_CH];
-    uint32_t rx_ch[MAX_CH];
+#define RX_DONE_OFFSET		0x100
+
+/* Please not change TX & RX */
+enum ipi_mb_chan_type {
+	IPI_MB_TYPE_TX   	= 0, /* Revert it*/
+	IPI_MB_TYPE_RX		= 1, /* Rx */
 };
 
-enum sw_mbox_channel_status
-{
-    S_READY,
-    S_BUSY,
-    S_DONE,
+struct ipi_mb_rpmsg {
+	void *			tx_mbase;
+	void *			rx_mbase;
+	int			mem_size;
 };
+
+#define REMOTE_HART_ID	1
+struct ipi_mb_rpmsg ipi_mb;
 
 static struct rt_mutex plat_mutex;
-int rpmsg_handler(unsigned long param) /* maybe put this handler to thread */
+
+int rpmsg_handler(unsigned long msg_type)
 {
+	rt_atomic_t *mb_base, msg;
+	void *rx_done_base;
+	int i, queue;
 
-    struct gen_sw_mbox *base = (struct gen_sw_mbox *)get_rpmsg_mbox_base();
-    unsigned long hart_mask = 0x2;
-    uint32_t vector_id;
+	env_set_ready();
 
-    env_set_ready();
-    //rt_kprintf("int tx stat %d rx stat %d\n", base->tx_status[0], base->rx_status[0]);
+	if (!msg_type)
+		return 0;
 
-    if (base->tx_status[RPMSG_DFT_CHANNEL] == S_DONE) {
-    	env_isr(0);
-	base->tx_status[RPMSG_DFT_CHANNEL] = S_READY;
-    }
-    /* Check if the interrupt is for us */
-    if (base->rx_status[RPMSG_DFT_CHANNEL] != S_BUSY) {
-    	return 0;
-    }
-    /* todo one vector id only */
-    //vector_id = base->rx_ch[RPMSG_MBOX_CHANNEL];
-	
-    base->rx_status[RPMSG_DFT_CHANNEL] = S_DONE;
-    env_mb();
+	mb_base = ipi_mb.rx_mbase;
+	rx_done_base = ipi_mb.rx_mbase + RX_DONE_OFFSET;
+	if (msg_type & BIT(IPI_MB_TYPE_RX)) {
+		for (i = 0; i < IPI_MB_CHANS * MAX_DEV_PER_CHAN; i++) {
+			msg = rt_hw_atomic_exchange(&mb_base[i], 0);
+			if (msg)
+				env_isr(msg >> 16);
+		}
+	}
+	if (msg_type & BIT(IPI_MB_TYPE_TX)) {
+		mb_base = (void *)rx_done_base;
+		for (i = 0; i < IPI_MB_CHANS * MAX_DEV_PER_CHAN; i++) {
+			msg = rt_hw_atomic_exchange(&mb_base[i], 0);
+			if (msg)
+				env_isr(msg >> 16);
+		}
+	}
 
-    env_isr(1); /* recv queue */
-
-    return 0;
-    //sbi_send_ipi(&hart_mask, 1, 1); /* todo set type */
+	return 0;
 }
 
-static void gen_sw_mailbox_init(struct gen_sw_mbox *base)
+static void gen_sw_mailbox_init()
 {
-    /* Clear status register */
-    base->rx_status[RPMSG_DFT_CHANNEL] = 0;
-    base->tx_status[RPMSG_DFT_CHANNEL] = 0;
+    ipi_mb.tx_mbase = get_rpmsg_mbox_base();
+    ipi_mb.rx_mbase = ipi_mb.tx_mbase + RX_MBOX_OFFSET;
 }
 
-static void gen_sw_mbox_sendmsg(struct gen_sw_mbox *base, uint32_t ch, uint32_t msg)
+static void gen_sw_mbox_sendmsg(uint32_t ch, uint32_t msg)
 {
     unsigned long hart_mask = 0x2;
+    rt_atomic_t *mb_base = ipi_mb.tx_mbase;
+    void *tx_done_base = ipi_mb.tx_mbase + RX_DONE_OFFSET;
 
-
-    //rt_kprintf("set tx stat %d rx stat %d msg %d\n", base->tx_status[0], base->tx_status[0], msg);
-
-    base->tx_ch[ch]     = msg;
-    if (msg == 0)
-    	base->tx_status[ch] = S_BUSY;
-    /* sync before trigger interrupt to remote */
-
-    /* todo */
-    env_mb();
-
-    sbi_send_ipi(&hart_mask, 0, 1); /* todo set type */
+    if (!(msg >> 16)) { /* tx queue */
+	rt_hw_atomic_exchange(&mb_base[ch >> 1], msg);
+	env_mb();
+	sbi_send_ipi(&hart_mask, IPI_MB_TYPE_TX, REMOTE_HART_ID);
+    } else {
+	mb_base = tx_done_base;
+	rt_hw_atomic_exchange(&mb_base[ch >> 1], msg);
+	env_mb();
+	sbi_send_ipi(&hart_mask, IPI_MB_TYPE_RX, REMOTE_HART_ID);
+    }
 }
 
 int32_t platform_init_interrupt(uint32_t vector_id, void *isr_data)
 {
-    //rt_mutex_take(&plat_mutex, 0);
     env_lock_mutex(&plat_mutex);
     /* Register ISR to environment layer */
     env_register_isr(vector_id, isr_data);
-    //rt_mutex_release(&plat_mutex);
     env_unlock_mutex(&plat_mutex);
     return 0;
 }
@@ -131,10 +113,10 @@ int32_t platform_deinit_interrupt(uint32_t vector_id)
 void platform_notify(uint32_t vector_id)
 {
    /* todo */
-    uint32_t msg = (uint32_t)(vector_id << 16);
+    uint32_t msg = (uint32_t)(vector_id << 16) | 0x1;
 
     env_lock_mutex(&plat_mutex);
-    gen_sw_mbox_sendmsg((struct gen_sw_mbox *)get_rpmsg_mbox_base(), RPMSG_DFT_CHANNEL, msg);
+    gen_sw_mbox_sendmsg(vector_id, msg);
     env_unlock_mutex(&plat_mutex);
 }
 
@@ -175,7 +157,7 @@ void platform_cache_disable(void)
  */
 int32_t platform_init(void)
 {
-    gen_sw_mailbox_init((struct gen_sw_mbox *)get_rpmsg_mbox_base());
+    gen_sw_mailbox_init();
 
     if (rt_mutex_init(&plat_mutex, "rpmsg", 0) != RT_EOK)
     	return -1;

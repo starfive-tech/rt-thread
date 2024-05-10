@@ -31,7 +31,8 @@
    (((sizeof(struct vring_used) + (RL_BUFFER_COUNT * sizeof(struct vring_used_elem)))  + \
       VRING_ALIGN - 1UL) &                                                                                  \
      ~(VRING_ALIGN - 1UL))
-#define VRING_SIZE (VRING_DESC_SIZE + VRING_AVAIL_SIZE + VRING_USED_SIZE)
+//#define VRING_SIZE (VRING_DESC_SIZE + VRING_AVAIL_SIZE + VRING_USED_SIZE)
+#define VRING_SIZE 0x2000
 #endif
 
 /* define shared memory space for VRINGS per one channel */

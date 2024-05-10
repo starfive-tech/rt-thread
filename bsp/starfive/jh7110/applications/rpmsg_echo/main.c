@@ -28,9 +28,7 @@
 #define RPMSG_RTT_REMOTE_TEST3_EPT_ID 0x4004U
 #define RPMSG_RTT_REMOTE_TEST_EPT3_NAME "rpmsg_chrdev"
 
-#define RPMSG_LINUX_MEM_BASE 0x6e410000
-#define RPMSG_LINUX_MEM_END  0x6e7fffff
-#define RPMSG_LINUX_MEM_SIZE (2UL * RL_VRING_OVERHEAD)
+struct rpmsg_lite_instance* get_rpmsg_lite_instance(int id);
 
 //#define RL_PLATFORM_SET_LINK_ID(mid, rid) ((mid << 16) | rid)
 
@@ -47,18 +45,6 @@ struct rpmsg_info_t
     uint32_t cb_sta;    /* callback status flags */
     void *private;
 };
-
-static void rpmsg_share_mem_check(void)
-{
-    if ((RPMSG_LINUX_MEM_BASE + RPMSG_LINUX_MEM_SIZE) > RPMSG_LINUX_MEM_END)
-    {
-        rt_kprintf("share memory size error!\n");
-        while (1)
-        {
-            ;
-        }
-    }
-}
 
 void rpmsg_ns_cb(uint32_t new_ept, const char *new_ept_name, uint32_t flags, void *user_data)
 {
@@ -89,9 +75,6 @@ static void rpmsg_linux_test_thread_entry(void *parameter)
     return;
 }
 
-void rt_set_soft_handler(void (*handler)(void *));
-
-
 static void rpmsg_linux_test(void)
 {
     int j;
@@ -103,13 +86,8 @@ static void rpmsg_linux_test(void)
     void *ns_cb_data;
     rt_thread_t tid;
 
-    rpmsg_share_mem_check();
     master_id = MASTER_ID;
-    //remote_id = HAL_CPU_TOPOLOGY_GetCurrentCpuId();
     remote_id = __raw_hartid();
-    rt_kprintf("rpmsg remote: remote core cpu_id-%ld\n", remote_id);
-    rt_kprintf("rpmsg remote: shmem_base-0x%lx shmem_end-0x%lx\n", RPMSG_LINUX_MEM_BASE, RPMSG_LINUX_MEM_END);
-
     info = (void *)rt_malloc(sizeof(struct rpmsg_info_t));
     if (info == NULL)
     {
@@ -129,9 +107,7 @@ static void rpmsg_linux_test(void)
         }
     }
 
-    info->instance = rpmsg_lite_remote_init((void *)RPMSG_LINUX_MEM_BASE,
-		//RL_PLATFORM_SET_LINK_ID(master_id, remote_id)
-		0, RL_NO_FLAGS); /* set link id to 0 */
+    info->instance = get_rpmsg_lite_instance(0);
     rpmsg_lite_wait_for_link_up(info->instance, 0);
     rt_kprintf("rpmsg remote: link up! link_id-0x%lx\n", info->instance->link_id);
     rpmsg_ns_bind(info->instance, rpmsg_ns_cb, &ns_cb_data);
