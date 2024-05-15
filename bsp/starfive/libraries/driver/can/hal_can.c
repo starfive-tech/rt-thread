@@ -298,7 +298,7 @@ static rt_ssize_t ipms_canfd_recvmsg(struct rt_can_device *can, void *buf, rt_ui
 /**
  * Hardware CAN Initialization
  */
-static int rt_hw_canfd_init(void)
+int rt_hw_canfd_init(void)
 {
     int i;
     rt_err_t ret = RT_EOK;

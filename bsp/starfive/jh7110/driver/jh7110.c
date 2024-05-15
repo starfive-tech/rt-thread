@@ -6,6 +6,7 @@
 #include "board.h"
 #include <riscv_io.h>
 #include "tick.h"
+#include "gpio.h"
 #include "drv_uart.h"
 #ifdef BSP_USING_RPMSG_LITE
 #include "rpmsg_platform.h"
@@ -191,6 +192,11 @@ unsigned long get_peri_root_rate(void)
 	return rate / div;
 }
 
+unsigned long get_iomux_base(void)
+{
+	return sys_iomux_base;
+}
+
 unsigned long sys_cur_time_ms(void)
 {
 	return get_ticks() / (CPUTIME_TIMER_FREQ / 1000);
@@ -343,6 +349,7 @@ void jh7110_driver_init(void)
     }
 
     jh7110_env_init();
+    hw_pin_init();
 #if defined(BSP_USING_GMAC)
 #if defined(BSP_USING_GMAC1)
     gmac1_plat_init();

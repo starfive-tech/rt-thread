@@ -8,6 +8,10 @@ config RISCV_DEFINE_PLIC_OFFSET
     bool "define hartid to plic num mapping function"
     default y
 
+config BSP_USING_GPIO
+    bool "enable gpio int(linux side can not use gpio int"
+    default n
+
 choice
     prompt "Choose Board"
 
