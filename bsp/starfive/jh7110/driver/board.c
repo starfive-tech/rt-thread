@@ -98,7 +98,8 @@ void rt_hw_board_init(void)
 
 #ifdef RT_USING_HEAP
     /* initialize memory system */
-    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+    rt_system_heap_init((void *)get_heap_base(),
+	(void *)(get_heap_base() + get_heap_size()));
 #endif
     rt_plic_init();
 
@@ -118,7 +119,8 @@ void rt_hw_board_init(void)
     sbi_init();
 
 #ifdef RT_USING_HEAP
-    rt_kprintf("heap: [0x%08x - 0x%08x]\n", (rt_ubase_t)RT_HW_HEAP_BEGIN, (rt_ubase_t)RT_HW_HEAP_END);
+    rt_kprintf("heap: [0x%08x - 0x%08x]\n", get_heap_base(),
+	(get_heap_base() + get_heap_size()));
 #endif /* RT_USING_HEAP */
 
 #ifdef RT_USING_COMPONENTS_INIT

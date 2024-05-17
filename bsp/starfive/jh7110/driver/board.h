@@ -19,11 +19,6 @@ extern unsigned int __bss_end;
 #ifndef RT_USING_SMART
 #define KERNEL_VADDR_START 0x0
 #endif
-
-#define HEAP_PHY_START 0x6f000000
-
-#define RT_HW_HEAP_BEGIN ((void *)HEAP_PHY_START)
-#define RT_HW_HEAP_END   ((void *)(RT_HW_HEAP_BEGIN + 16 * 1024 * 1024))
 /*
 #define RT_HW_PAGE_START RT_HW_HEAP_END
 #define RT_HW_PAGE_END   ((void *)(KERNEL_VADDR_START + 8 * 1024 * 1024))
@@ -35,6 +30,8 @@ void rt_init_user_mem(struct rt_thread *thread, const char *name,
 void rt_plic_init(void);
 void *get_rpmsg_sharemem_base();
 unsigned long get_iomux_base(void);
+unsigned long get_heap_base(void);
+unsigned long get_heap_size(void);
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base();
 void *get_rpmsg_base(void);

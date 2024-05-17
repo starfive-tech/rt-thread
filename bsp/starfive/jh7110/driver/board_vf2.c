@@ -88,6 +88,17 @@ void *get_rpmsg_sharemem_base()
 	return (void *)0x6e400000;
 }
 
+
+unsigned long get_heap_base(void)
+{
+	return 0x6f000000;
+}
+
+unsigned long get_heap_size(void)
+{
+	return 16 * 1024 * 1024;
+}
+
 #ifdef BSP_USING_RPMSG_LITE
 void *get_rpmsg_mbox_base()
 {
@@ -98,6 +109,5 @@ void *get_rpmsg_base(void)
 {
 	return (void *)0x6e404000;
 }
-
 #endif
 
