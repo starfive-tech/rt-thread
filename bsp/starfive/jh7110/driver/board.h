@@ -38,6 +38,7 @@ void *get_rpmsg_base(void);
 #endif
 void *get_ipi_handler();
 int get_uart_config_num();
+void uart_set_pinctrl(int id);
 
 #if defined(BSP_USING_GMAC)
 int rt_hw_gmac_init(void);

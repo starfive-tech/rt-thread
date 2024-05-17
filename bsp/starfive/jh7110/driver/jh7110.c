@@ -327,12 +327,20 @@ static void jh7110_uart_init()
 
     for (i = 0; i < get_uart_config_num(); i++) {
 	conf = get_uart_config(i);
-	if (conf->index == 2) {
+	if (conf->index == 1) {
+		sys_setbits(sys_crg_base + CLK_UART1_APB_OFFSET, BIT(31));
+		sys_setbits(sys_crg_base + CLK_UART1_CORE_OFFSET, BIT(31));
+		sys_clrsetbits(sys_crg_base + SYS_CRG_RESET2,
+			    BIT(21) | BIT(22), 0);
+	}
+	else if (conf->index == 2) {
 	    sys_setbits(sys_crg_base + CLK_UART2_APB_OFFSET, BIT(31));
 	    sys_setbits(sys_crg_base + CLK_UART2_CORE_OFFSET, BIT(31));
 	    sys_clrsetbits(sys_crg_base + SYS_CRG_RESET2,
 			BIT(23) | BIT(24), 0);
 	}
+	if (conf->pinctrl)
+		uart_set_pinctrl(i);
    }
 }
 

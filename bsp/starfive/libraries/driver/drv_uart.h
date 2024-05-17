@@ -64,6 +64,7 @@ struct uart_config {
     rt_uint32_t uart8250_reg_shift;
     rt_uint8_t index;
     rt_uint8_t control_uart;
+    rt_uint8_t pinctrl;
 };
 
 void rt_hw_uart_start_rx_thread();

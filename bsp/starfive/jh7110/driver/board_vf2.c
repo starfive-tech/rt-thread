@@ -22,6 +22,7 @@ static struct uart_config uart_config[] = {
         .uart8250_reg_shift = 2,
         .index = 1,
         .control_uart = 0,
+        .pinctrl = 1,
     },
 #endif
     {
@@ -34,6 +35,7 @@ static struct uart_config uart_config[] = {
         .uart8250_reg_shift = 2,
         .index = 2,
         .control_uart = 1,
+        .pinctrl = 0,
     },
 };
 
@@ -83,11 +85,16 @@ struct uart_config *get_uart_config(int i)
 	return &uart_config[i];
 }
 
+#ifndef BSP_USING_DEVKITS
+void uart_set_pinctrl(int id)
+{
+}
+#endif
+
 void *get_rpmsg_sharemem_base()
 {
 	return (void *)0x6e400000;
 }
-
 
 unsigned long get_heap_base(void)
 {
