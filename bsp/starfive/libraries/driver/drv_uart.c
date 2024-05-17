@@ -10,6 +10,7 @@
 #include <rthw.h>
 #include <rtdevice.h>
 #include <rtthread.h>
+#include <riscv_io.h>
 
 #include "board.h"
 #include "drv_uart.h"
@@ -22,11 +23,11 @@ static rt_uint32_t get_reg(struct uart_config *config, rt_uint32_t num)
 	rt_uint32_t offset = num << config->uart8250_reg_shift;
 
 	if (config->uart8250_reg_width == 1)
-		return __raw_readb(config->remap_base + offset);
+		return sys_readb(config->remap_base + offset);
 	else if (config->uart8250_reg_width == 2)
-		return __raw_readw(config->remap_base + offset);
+		return sys_readw(config->remap_base + offset);
 	else
-		return __raw_readl(config->remap_base + offset);
+		return sys_readl(config->remap_base + offset);
 }
 
 static void set_reg(struct uart_config *config, rt_uint32_t num, rt_uint32_t val)
@@ -34,11 +35,11 @@ static void set_reg(struct uart_config *config, rt_uint32_t num, rt_uint32_t val
 	rt_uint32_t offset = num << config->uart8250_reg_shift;
 
 	if (config->uart8250_reg_width == 1)
-		__raw_writeb(val, config->remap_base + offset);
+		sys_writeb(val, config->remap_base + offset);
 	else if (config->uart8250_reg_width == 2)
-		__raw_writew(val, config->remap_base + offset);
+		sys_writew(val, config->remap_base + offset);
 	else
-		__raw_writel(val, config->remap_base + offset);
+		sys_writel(val, config->remap_base + offset);
 }
 
 void uart_init(struct uart_config *config)
@@ -179,8 +180,14 @@ int rt_hw_uart_init(void)
         serial->ops = &_uart_ops;
         serial->config = config;
 	serial->config.baud_rate = uart_config->uart8250_baudrate;
-	rt_hw_serial_register(serial,
+	if (uart_config->control_uart)
+		rt_hw_serial_register(serial,
 			      RT_CONSOLE_DEVICE_NAME,
+			      RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
+			      uart_config);
+	else
+		rt_hw_serial_register(serial,
+			      console_name,
 			      RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
 			      uart_config);
 	rt_hw_interrupt_install(uart_config->irqno, rt_hw_uart_isr, uart_config, console_name);
