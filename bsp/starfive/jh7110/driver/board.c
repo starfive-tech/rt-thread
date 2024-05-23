@@ -108,7 +108,7 @@ void rt_hw_board_init(void)
     rt_hw_interrupt_init();
     rt_set_soft_handler(get_ipi_handler());
 
-    rt_hw_uart_init();
+    rt_control_uart_init();
 
 #ifdef RT_USING_CONSOLE
     /* set console device */

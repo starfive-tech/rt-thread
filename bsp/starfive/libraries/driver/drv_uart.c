@@ -161,40 +161,59 @@ void rt_hw_uart_isr(int irqno, void *param)
     rt_hw_interrupt_enable(level);
 }
 
-int rt_hw_uart_init(void)
+static void rt_register_uart(struct uart_config *uart_config,
+		const char *console_name)
 {
     struct rt_serial_device *serial;
     struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
+
+#ifdef RT_USING_SMART
+    uart_config->remap_base = rt_ioremap(uart_config->hw_base, 4096);
+#endif
+    serial = &uart_config->serial;
+    serial->ops = &_uart_ops;
+    serial->config = config;
+    serial->config.baud_rate = uart_config->uart8250_baudrate;
+    rt_hw_serial_register(serial,
+			console_name,
+			RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
+			uart_config);
+    rt_hw_interrupt_install(uart_config->irqno, rt_hw_uart_isr, uart_config, console_name);
+    rt_hw_interrupt_umask(uart_config->irqno);
+}
+
+int rt_hw_uart_init(void)
+{
     char console_name[] = "uart0";
     struct uart_config *uart_config;
-    int i, uart_num;
+    int i;
 
     for (i = 0; i < get_uart_config_num(); i++)
     {
         uart_config = get_uart_config(i);
-#ifdef RT_USING_SMART
-	uart_config->remap_base = rt_ioremap(uart_config->hw_base, 4096);
-#endif
+        if (uart_config->control_uart)
+	    continue;
+	uart_config_fixup(i);
 	console_name[4] = uart_config->index + '0';
-	serial = &uart_config->serial;
-        serial->ops = &_uart_ops;
-        serial->config = config;
-	serial->config.baud_rate = uart_config->uart8250_baudrate;
-	if (uart_config->control_uart)
-		rt_hw_serial_register(serial,
-			      RT_CONSOLE_DEVICE_NAME,
-			      RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
-			      uart_config);
-	else
-		rt_hw_serial_register(serial,
-			      console_name,
-			      RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
-			      uart_config);
-	rt_hw_interrupt_install(uart_config->irqno, rt_hw_uart_isr, uart_config, console_name);
-	rt_hw_interrupt_umask(uart_config->irqno);
+	rt_register_uart(uart_config, console_name);
     }
+    return 0;
+}
 
-    // register device
+int rt_control_uart_init(void)
+{
+    struct uart_config *uart_config;
+    int i;
+
+    for (i = 0; i < get_uart_config_num(); i++)
+    {
+        uart_config = get_uart_config(i);
+	if (uart_config->control_uart) {
+	    uart_config_fixup(i);
+	    rt_register_uart(uart_config, RT_CONSOLE_DEVICE_NAME);
+	    break;
+	}
+    }
 
     return 0;
 }

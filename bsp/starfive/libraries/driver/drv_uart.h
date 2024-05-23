@@ -71,6 +71,7 @@ void rt_hw_uart_start_rx_thread();
 void drv_uart_puts(char *str); // for syscall
 void rt_hw_uart_isr(int irqno, void *param);
 int rt_hw_uart_init(void);
+int rt_control_uart_init(void);
 int get_uart_config_num();
 struct uart_config *get_uart_config(int i);
 
