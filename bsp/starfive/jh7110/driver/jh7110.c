@@ -277,7 +277,7 @@ void can_plat_init(struct ipms_canfd *ipms)
 
     ipms->cfg.clk_freq = can_rate;
 
-    root_rate = ROUNDUP(root_rate, div);
+    root_rate = ROUNDUP(root_rate, can_rate);
     div = root_rate / can_rate;
 
     can_set_board_config(ipms);
@@ -288,6 +288,8 @@ void can_plat_init(struct ipms_canfd *ipms)
 	ipms->base  = (void *)0x130d0000;
 #endif
 	ipms->irq = 112;
+	sys_clrsetbits(sys_crg_base + SYS_CRG_RESET3,
+			    GENMASK(17, 15), 0);
 	sys_setbits(sys_crg_base + CAN0_CTRL_CLK_APB, BIT(31));
 	sys_setbits(sys_crg_base + CAN0_CTRL_CLK_TIMER, BIT(31));
 	sys_setbits(sys_crg_base + CAN0_CTRL_CLK_CORE, BIT(31) | div);
@@ -301,6 +303,8 @@ void can_plat_init(struct ipms_canfd *ipms)
 	ipms->base = (void *)0x130e0000;
 #endif
 	ipms->irq = 113;
+	sys_clrsetbits(sys_crg_base + SYS_CRG_RESET3,
+			    GENMASK(20, 18), 0);
 	sys_setbits(sys_crg_base + CAN1_CTRL_CLK_APB, BIT(31));
 	sys_setbits(sys_crg_base + CAN1_CTRL_CLK_TIMER, BIT(31));
 	sys_setbits(sys_crg_base + CAN1_CTRL_CLK_CORE, BIT(31) | div);
