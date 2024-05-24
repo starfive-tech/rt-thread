@@ -265,6 +265,10 @@ void gmac_plat_init(gmac_handle_t *gmac)
     }
     /* todo  get mac addr from share ram gmac 1*/
     gmac_set_board_config(gmac);
+
+#if defined(BSP_USING_GMAC1)
+    gmac1_plat_init();
+#endif
 }
 #endif
 
@@ -381,9 +385,6 @@ void jh7110_driver_init(void)
     jh7110_env_init();
     hw_pin_init();
 #if defined(BSP_USING_GMAC)
-#if defined(BSP_USING_GMAC1)
-    gmac1_plat_init();
-#endif
     rt_hw_gmac_init();
 #endif
 #if defined(BSP_USING_CAN)

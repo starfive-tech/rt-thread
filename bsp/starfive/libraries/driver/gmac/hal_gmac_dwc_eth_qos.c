@@ -580,9 +580,9 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
         return -1;
     }
 
-    ret = wait_for_bit(&eqos_dev->dma_regs->mode, EQOS_DMA_MODE_SWR, 0, 10);
+    ret = wait_for_bit(&eqos_dev->dma_regs->mode, EQOS_DMA_MODE_SWR, 0, 10000);
     if (ret) {
-        hal_printf("EQOS_DMA_MODE_SWR stuck");
+        hal_printf("EQOS_DMA_MODE_SWR stuck\n");
         goto err;
     }
 
@@ -848,7 +848,6 @@ gmac_handle_t* gmac_open(gmac_handle_t *gmac)
 
     gmac->priv = eqos_dev;
     gmac_plat_init(gmac);
-
     eqos_dev->handle = gmac;
     eqos_dev->mac_regs = (void *)(gmac->base + EQOS_MAC_REGS_BASE);
     eqos_dev->mtl_regs = (void *)(gmac->base + EQOS_MTL_REGS_BASE);
