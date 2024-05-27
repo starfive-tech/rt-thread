@@ -233,13 +233,15 @@ unsigned int sys_gmac_get_csr_clk(int id)
 #if defined(BSP_USING_GMAC)
 static struct gmac_config gmac_config[] = {
     {
-	.speed = GMAC_PHY_SPEED_1000M,
+	.speed_mode = GMAC_PHY_SPEED_1000M,
+	.speed = 1000,
 	.phy_addr = 0,
 	.irq = 7, /* mac irq */
 	.duplex = GMAC_PHY_FULL_DUPLEX,
     },
     {
-	.speed = GMAC_PHY_SPEED_100M,
+	.speed_mode = GMAC_PHY_SPEED_1000M,
+	.speed = 1000,
 	.phy_addr = 0,
 	.irq = 78, /* mac irq */
 	.duplex = GMAC_PHY_FULL_DUPLEX,

@@ -113,7 +113,11 @@ static int eqos_set_mii_speed_10(eqos_eth_dev_t *eqos_dev)
 
 static int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
 {
-    switch (eqos_dev->handle->gmac_config.speed)
+    int speed_mode, duplex;
+
+    speed_mode = eqos_dev->handle->gmac_config.speed_mode;
+    duplex = eqos_dev->handle->gmac_config.duplex;
+    switch (speed_mode)
     {
     case GMAC_PHY_SPEED_10M:
             eqos_set_mii_speed_10(eqos_dev);
@@ -128,7 +132,7 @@ static int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
         break;
     }
 
-    if(eqos_dev->handle->gmac_config.duplex==GMAC_PHY_FULL_DUPLEX)
+    if(duplex==GMAC_PHY_FULL_DUPLEX)
     {
         sys_modl(&eqos_dev->mac_regs->configuration, EQOS_MAC_CONFIGURATION_DM, EQOS_MAC_CONFIGURATION_DM);
     }
@@ -585,7 +589,6 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
         hal_printf("EQOS_DMA_MODE_SWR stuck\n");
         goto err;
     }
-
     //set speed and duplex
     eqos_set_speed_duplex(eqos_dev);
 

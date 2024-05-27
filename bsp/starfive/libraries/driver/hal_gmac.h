@@ -14,30 +14,6 @@ extern "C" {
 #endif /* __cplusplus */
 #include <netif/ethernetif.h>
 
-#if 0
-typedef enum {
-    GMAC_ETH_INT_TX     = BIT(0),
-    GMAC_ETH_INT_RX     = BIT(1),
-    GMAC_ETH_INT_ERR    = BIT(2),
-} gmac_eth_int_flag_t;
-
-typedef enum {
-    GMAC_ETH_WAKEUP_MGKPKT     = BIT(0),   //magic packet
-    GMAC_ETH_WAKEUP_RWKPKT     = BIT(1),   //remote wakeup packet
-} gmac_eth_wakeup_flag_t;
-
-
-typedef void (*gmac_eth_int_callback_t)(void *user_arg, gmac_eth_int_flag_t int_status);
-
-typedef struct gmac_eth_int {
-    gmac_eth_int_callback_t callback;
-    void *user_arg;
-    gmac_eth_int_flag_t int_enable;
-    gmac_eth_int_flag_t int_status;
-    int irq;
-} gmac_eth_int_t;
-#endif
-
 typedef enum gmac_phy_speed{
     GMAC_PHY_SPEED_10M      = 0,
     GMAC_PHY_SPEED_100M     = 1,
@@ -73,6 +49,7 @@ struct gmac_dev {
     rt_uint32_t advertising;
     rt_uint32_t supported;
     rt_uint16_t link_status;
+    int speed_mode;
     int speed;
     int duplex;
     //const struct gmac_dev_ops_t *ops;
@@ -91,6 +68,7 @@ struct gmac_phy_dev {
 };
 
 struct gmac_config {
+    int speed_mode;
     int speed;
     int phy_addr;
     int irq;

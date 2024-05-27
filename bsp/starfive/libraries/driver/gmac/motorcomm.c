@@ -319,10 +319,11 @@ static int ytphy_parse_status(struct gmac_dev *dev)
 	break;
     }
 
+    dev->speed_mode = speed_mode;
     dev->speed = speed;
     dev->duplex = duplex;
 
-    LOG_DBG("speed %d duplex %d\n", speed, duplex);
+    hal_printf("speed %d duplex %d\n", speed, duplex);
 
     return 0;
 }
