@@ -21,25 +21,10 @@ int gmac_dev_genphy_config_aneg(struct gmac_dev *dev)
     int oldadv, adv, bmsr;
     int err, changed = 0;
 
-#if 0
-    switch (speed)
-    {
-    case GMAC_PHY_SPEED_10M:
-            supported = (duplex == GMAC_PHY_HALF_DUPLEX) ? SUPPORTED_10baseT_Half : SUPPORTED_10baseT_Full;
-        break;
-    case GMAC_PHY_SPEED_100M:
-            supported = (duplex == GMAC_PHY_HALF_DUPLEX) ? SUPPORTED_100baseT_Half : SUPPORTED_100baseT_Full;
-        break;
-    case GMAC_PHY_SPEED_1000M:
-            supported = (duplex == GMAC_PHY_HALF_DUPLEX) ? SUPPORTED_1000baseT_Half : SUPPORTED_1000baseT_Full;
-        break;
-    default:
-        break;
-    }
-#endif
     advertise = dev->advertising;
     /* Only allow advertising what this PHY supports */
     advertise = advertise & dev->supported;
+    supported = dev->supported;
 
     /* Setup standard advertisement */
     err = gmac_mdio_read(dev->hal, MII_ADVERTISE, &adv);
