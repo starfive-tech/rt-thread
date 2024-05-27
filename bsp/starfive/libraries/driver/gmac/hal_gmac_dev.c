@@ -263,13 +263,12 @@ void phy_link_detect(void *param)
     gmac_handle_t *handle = param;
     rt_uint16_t bmsr = 0;
     rt_uint16_t link_status = 0;
-    rt_uint16_t link_status_old = 0;
+    rt_uint16_t link_status_old = handle->phy_dev->link_status ? BMSR_LSTATUS: 0;
     rt_uint16_t phy_val;
     int ret = -1;
 
     while(1)
     {
-        //hal_printf("link detect\n");
         ret = gmac_mdio_read(handle, MII_BMSR, &bmsr);
         link_status = bmsr & BMSR_LSTATUS;
         if(link_status_old != link_status)
@@ -302,6 +301,32 @@ int gmac_phy_init(gmac_handle_t * handle)
     struct gmac_dev *dev = handle->phy_dev;
 
     return dev->ops->init(dev);
+}
+
+static int gmac_phy_preinit(struct gmac_dev *dev)
+{
+    gmac_handle_t *handle = dev->hal;
+    unsigned short bmsr;
+    int ret;
+
+    ret = gmac_dev_genphy_reset(dev);
+    if (ret)
+	return ret;
+    ret = gmac_mdio_read(handle, MII_BMSR, &bmsr);
+    if (ret)
+	return ret;
+
+    if (bmsr & BMSR_LSTATUS) {
+	    ret = gmac_phy_init(handle);
+	    if (ret == 0)
+	        dev->link_status = RT_TRUE;
+    } else {
+	dev->speed_mode = handle->gmac_config.speed_mode;
+	dev->speed = handle->gmac_config.speed;
+	dev->duplex = handle->gmac_config.duplex;
+    }
+
+    return 0;
 }
 
 int genric_gmac_phy_init(gmac_handle_t * handle)
@@ -351,5 +376,7 @@ int genric_gmac_phy_init(gmac_handle_t * handle)
 
     handle->phy_dev = dev;
 
-    return 0;
+    ret = gmac_phy_preinit(dev);
+
+    return ret;
 }

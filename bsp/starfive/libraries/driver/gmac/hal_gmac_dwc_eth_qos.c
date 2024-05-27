@@ -115,8 +115,8 @@ static int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
 {
     int speed_mode, duplex;
 
-    speed_mode = eqos_dev->handle->gmac_config.speed_mode;
-    duplex = eqos_dev->handle->gmac_config.duplex;
+    speed_mode = eqos_dev->handle->phy_dev->speed_mode;
+    duplex = eqos_dev->handle->phy_dev->duplex;
     switch (speed_mode)
     {
     case GMAC_PHY_SPEED_10M:
@@ -857,6 +857,10 @@ gmac_handle_t* gmac_open(gmac_handle_t *gmac)
     eqos_dev->dma_regs = (void *)(gmac->base + EQOS_DMA_REGS_BASE);
     eqos_dev->tegra186_regs = (void *)(gmac->base + EQOS_TEGRA186_REGS_BASE);
 
+    ret = genric_gmac_phy_init(gmac);
+    if (ret)
+	return NULL;
+
     if(eqos_eth_init(eqos_dev))
     {
         gmac_close(gmac);
@@ -866,10 +870,6 @@ gmac_handle_t* gmac_open(gmac_handle_t *gmac)
     /* dma interrupt enable */
     sys_writel(DMA_CHAN_INTR_NORMAL | DMA_CHAN_INTR_ABNORMAL,
     	&eqos_dev->dma_regs->ch0_interrupt_enable);
-
-    ret = genric_gmac_phy_init(gmac);
-    if (ret)
-	return NULL;
 
     return gmac;
 

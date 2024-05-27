@@ -147,10 +147,13 @@ static rt_err_t dw_gmac_init(rt_device_t device)
 
     gmac_name[4] = '0' + gmac->id;
     rt_hw_interrupt_install(gmac->gmac_config.irq, rt_hw_gmac_isr, gmac, gmac_name);
+    if (gmac->phy_dev->link_status)
+	gmac_link_change(gmac, 1);
+
     link_detect = rt_thread_create("link_detect",
 			    phy_link_detect,
 			    (void *)gmac,
-			    8192,
+			    4096,
 			    13,
 			    20);
 
