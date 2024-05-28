@@ -319,6 +319,10 @@ static int ytphy_parse_status(struct gmac_dev *dev)
 	break;
     }
 
+    if ((dev->speed_mode != speed_mode) ||
+	(dev->duplex != duplex))
+	dev->mode_changed = 1;
+
     dev->speed_mode = speed_mode;
     dev->speed = speed;
     dev->duplex = duplex;

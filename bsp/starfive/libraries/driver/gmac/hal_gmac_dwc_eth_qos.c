@@ -111,7 +111,7 @@ static int eqos_set_mii_speed_10(eqos_eth_dev_t *eqos_dev)
     return 0;
 }
 
-static int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
+int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
 {
     int speed_mode, duplex;
 

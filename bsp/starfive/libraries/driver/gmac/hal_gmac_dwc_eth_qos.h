@@ -411,6 +411,7 @@ int eqos_send(eqos_eth_dev_t *eqos_dev, int length);
 int eqos_recv(eqos_eth_dev_t *eqos_dev, int *rx_busy);
 int gmac_mdio_write(gmac_handle_t *gmac, int reg, unsigned int data);
 int gmac_mdio_read(gmac_handle_t *gmac, int reg, void *data);
+int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev);
 
 #ifdef __cplusplus
 }

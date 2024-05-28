@@ -52,7 +52,7 @@ struct gmac_dev {
     int speed_mode;
     int speed;
     int duplex;
-    //const struct gmac_dev_ops_t *ops;
+    char mode_changed:1;
 };
 
 struct gmac_phy_ops {

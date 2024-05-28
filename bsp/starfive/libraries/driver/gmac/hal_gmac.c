@@ -99,8 +99,14 @@ void dw_gmac_pkt_dump(const char *msg, const struct pbuf *p)
 
 void gmac_link_change(gmac_handle_t *dev,int up)
 {
+    eqos_eth_dev_t *eqos_dev = (void *)dev->priv;
+
     if(up) {
         rt_kprintf("link up\n");
+	if (dev->phy_dev->mode_changed) {
+	    eqos_set_speed_duplex(eqos_dev);
+	    dev->phy_dev->mode_changed = 0;
+	}
 	eth_device_linkchange(&dev->eth, RT_TRUE);
 	dev->phy_dev->link_status = RT_TRUE;
 	rt_hw_plic_irq_enable(dev->gmac_config.irq);
