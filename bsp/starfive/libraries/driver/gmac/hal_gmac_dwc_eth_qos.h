@@ -326,10 +326,10 @@ typedef struct gmac_tegra186_regs {
 #endif
 
 typedef struct eqos_desc {
-    rt_uint32_t des0;
-    rt_uint32_t des1;
-    rt_uint32_t des2;
-    rt_uint32_t des3;
+    uint32_t des0;
+    uint32_t des1;
+    uint32_t des2;
+    uint32_t des3;
 }eqos_desc_t;
 
 #define EQOS_DESC2_IOC      BIT(31)

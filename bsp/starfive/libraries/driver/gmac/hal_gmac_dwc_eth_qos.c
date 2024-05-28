@@ -26,7 +26,7 @@
 
 static int wait_for_bit(void *reg, const uint32_t mask, const int set, const unsigned int timeout_ms)
 {
-    rt_uint32_t val;
+    uint32_t val;
     unsigned long start = sys_cur_time_ms();
 
     while (1)
@@ -206,9 +206,9 @@ int eqos_gmac_isr(eqos_eth_dev_t *eqos_dev)
 
 static int eqos_mdio_read(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *data, rt_uint32_t size)
 {
-    rt_uint32_t mdio_val;
+    uint32_t mdio_val;
     int ret;
-    rt_uint8_t csr_clk_range = 0;
+    uint8_t csr_clk_range = 0;
     eqos_eth_dev_t *eqos_dev = (void *)bus;
 
     ret = wait_for_bit(&eqos_dev->mac_regs->mdio_address, EQOS_MAC_MDIO_ADDRESS_GB, 0, 1000000);
@@ -248,9 +248,9 @@ static int eqos_mdio_read(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *da
 
 static int eqos_mdio_write(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *data, rt_uint32_t size)
 {
-    rt_uint32_t mdio_val;
+    uint32_t mdio_val;
     int ret;
-    rt_uint8_t csr_clk_range = 0;
+    uint8_t csr_clk_range = 0;
     eqos_eth_dev_t *eqos_dev = (void *)bus;
 
     ret = wait_for_bit(&eqos_dev->mac_regs->mdio_address, EQOS_MAC_MDIO_ADDRESS_GB, 0, 1000000);
@@ -573,8 +573,8 @@ static void eqos_eth_trans_ctrl(eqos_eth_dev_t *eqos_dev, int en)
 static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
 {
     int ret, i;
-    rt_uint64_t rate;
-    rt_uint32_t val, tx_fifo_sz, rx_fifo_sz, tqs, rqs, pbl;
+    unsigned long rate;
+    unsigned int val, tx_fifo_sz, rx_fifo_sz, tqs, rqs, pbl;
     unsigned long last_rx_desc;
 
     ret = eqos_resources_malloc(eqos_dev);

@@ -17,7 +17,7 @@
 
 int gmac_dev_genphy_config_aneg(struct gmac_dev *dev)
 {
-    rt_uint32_t advertise, supported;
+    unsigned int advertise, supported;
     int oldadv, adv, bmsr;
     int err, changed = 0;
 
@@ -261,10 +261,10 @@ int gmac_dev_genphy_reset(struct gmac_dev *dev)
 void phy_link_detect(void *param)
 {
     gmac_handle_t *handle = param;
-    rt_uint16_t bmsr = 0;
-    rt_uint16_t link_status = 0;
-    rt_uint16_t link_status_old = handle->phy_dev->link_status ? BMSR_LSTATUS: 0;
-    rt_uint16_t phy_val;
+    unsigned short bmsr = 0;
+    unsigned short link_status = 0;
+    unsigned short link_status_old = handle->phy_dev->link_status ? BMSR_LSTATUS: 0;
+    unsigned short phy_val;
     int ret = -1;
 
     while(1)
@@ -332,8 +332,8 @@ static int gmac_phy_preinit(struct gmac_dev *dev)
 int genric_gmac_phy_init(gmac_handle_t * handle)
 {
     struct gmac_dev *dev;
-    rt_uint32_t value;
-    rt_uint16_t temp_val;
+    unsigned int value;
+    unsigned short temp_val;
     int ret, i;
 
     dev = (struct gmac_dev *)hal_malloc(sizeof(struct gmac_dev));
