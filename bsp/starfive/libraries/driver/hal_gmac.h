@@ -37,6 +37,7 @@ struct phy_dts_config {
     char tx_inverted_10;
     char tx_inverted_100;
     char tx_inverted_1000;
+    char disable_llp;
 };
 
 struct gmac_handle;
@@ -53,6 +54,7 @@ struct gmac_dev {
     int speed;
     int duplex;
     char mode_changed:1;
+    char disable_llp:1;
 };
 
 struct gmac_phy_ops {

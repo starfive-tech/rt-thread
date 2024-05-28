@@ -52,6 +52,7 @@ static struct phy_dts_config phy_dts[] = {
 	.tx_inverted_10 = 0x1,
 	.tx_inverted_100 = 0x1,
 	.tx_inverted_1000 = 0x1,
+	.disable_llp = 0,
     },
     {
 	.rgmii_sw_dr_2 = 0x0,
@@ -64,6 +65,7 @@ static struct phy_dts_config phy_dts[] = {
 	.tx_inverted_10 = 0x1,
 	.tx_inverted_100 = 0x1,
 	.tx_inverted_1000 = 0,
+	.disable_llp = 0,
     }
 };
 

@@ -103,6 +103,10 @@
 //#define YTPHY_RGMII_SW_DR_MASK	GENMASK(5, 4)
 //#define YTPHY_RGMII_RXC_DR_MASK	GENMASK(15, 13)
 
+/* Phy gmii clock gating Register */
+#define YT8521_CLOCK_GATING_REG		0xC
+#define YT8521_CGR_RX_CLK_EN		BIT(12)
+
 #define SPEED_10        10
 #define SPEED_100       100
 #define SPEED_1000      1000
@@ -368,9 +372,39 @@ static int ytphy_of_inverted(struct gmac_dev *dev)
     return ytphy_write_ext(dev, YTPHY_EXTREG_RGMII_CONFIG1, val);
 }
 
+static int yt8531_disable_llp(gmac_handle_t *handle)
+{
+    unsigned int val;
+    int ret;
+
+    /* disable auto sleep */
+    ret = gmac_mdio_read(handle, YT8521_EXTREG_SLEEP_CONTROL1, &val);
+    if (ret < 0)
+	return val;
+
+    val &= (~BIT(YT8521_EN_SLEEP_SW_BIT));
+    ret = gmac_mdio_write(handle, YT8521_EXTREG_SLEEP_CONTROL1, val);
+    if (ret < 0)
+	return ret;
+
+     /* enable RXC clock when no wire plug */
+    ret = gmac_mdio_read(handle, YT8521_CLOCK_GATING_REG, &val);
+    if (val < 0)
+	return val;
+
+    val &= ~YT8521_CGR_RX_CLK_EN;
+    ret = gmac_mdio_write(handle, YT8521_CLOCK_GATING_REG, val);
+
+    if (ret < 0)
+	return ret;
+
+    return 0;
+}
+
 //The configurations for 8531 and 8521 are the same
 static int yt8531_dev_init(struct gmac_dev *dev)
 {
+    gmac_handle_t *handle = dev->hal;
     int ret;
 
     ret = gmac_dev_genphy_config_aneg(dev);
@@ -380,6 +414,9 @@ static int yt8531_dev_init(struct gmac_dev *dev)
     ret = gmac_dev_genphy_process_aneg_result(dev, ret);
     if (ret < 0)
 	return ret;
+
+    if (handle->phy_config.disable_llp)
+	yt8531_disable_llp(handle);
 
     ret = ytphy_of_config(dev);
     if (ret < 0)
