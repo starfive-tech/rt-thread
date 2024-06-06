@@ -15,7 +15,6 @@
 #include "board.h"
 #include "interrupt.h"
 #include "hal_gmac.h"
-#include "hal_gmac_dwc_eth_qos.h"
 
 #if 0
 #define DBG_ENABLE
@@ -44,13 +43,15 @@ struct gmac_lwip_pbuf {
     gmac_handle_t *gmacdev;
 };
 
+#define HAL_ETHERNET_MTU	1518
+
 /* Private variables ------------------------------------------------------------*/
 #if defined(BSP_USING_GMAC0)
-    LWIP_MEMPOOL_DECLARE(gmac0_rx, EQOS_DESCRIPTORS_RX, sizeof(struct gmac_lwip_pbuf), "GMAC0 RX PBUF pool");
+    LWIP_MEMPOOL_DECLARE(gmac0_rx, HAL_EQOS_DESC_NUM, sizeof(struct gmac_lwip_pbuf), "GMAC0 RX PBUF pool");
 #endif
 
 #if defined(BSP_USING_GMAC1)
-    LWIP_MEMPOOL_DECLARE(gmac1_rx, EQOS_DESCRIPTORS_RX, sizeof(struct gmac_lwip_pbuf), "GMAC1 RX PBUF pool");
+    LWIP_MEMPOOL_DECLARE(gmac1_rx, HAL_EQOS_DESC_NUM, sizeof(struct gmac_lwip_pbuf), "GMAC1 RX PBUF pool");
 #endif
 
 static gmac_handle_t dw_gmac[] =
@@ -99,12 +100,10 @@ void dw_gmac_pkt_dump(const char *msg, const struct pbuf *p)
 
 void gmac_link_change(gmac_handle_t *dev,int up)
 {
-    eqos_eth_dev_t *eqos_dev = (void *)dev->priv;
-
     if(up) {
         rt_kprintf("link up\n");
 	if (dev->phy_dev->mode_changed) {
-	    eqos_set_speed_duplex(eqos_dev);
+	    dev->ops->set_speed_and_duplex(dev->priv);
 	    dev->phy_dev->mode_changed = 0;
 	}
 	eth_device_linkchange(&dev->eth, RT_TRUE);
@@ -122,12 +121,11 @@ void gmac_link_change(gmac_handle_t *dev,int up)
 static void rt_hw_gmac_isr(int irq, void *arg)
 {
     gmac_handle_t *gmac = (gmac_handle_t *)arg;
-    eqos_eth_dev_t *eqos_dev = gmac->priv;
     rt_uint32_t status_dma_reg = 0;
     int ret;
 
     rt_ubase_t level = rt_hw_interrupt_disable();
-    ret = eqos_gmac_isr(eqos_dev);
+    ret = gmac->ops->gmac_isr(gmac->priv);
     if (ret < 0) {
 	rt_kprintf("isr: tx hard_error\n");
 	return;
@@ -146,7 +144,7 @@ static rt_err_t dw_gmac_init(rt_device_t device)
     int ret;
     RT_ASSERT(device);
 
-    gmac = gmac_open(gmac);
+    gmac = gmac->ops->open(gmac);
 
     if (!gmac)
 	return -RT_ERROR;
@@ -216,11 +214,11 @@ static rt_err_t dw_gmac_control(rt_device_t device, int cmd, void *args)
 void dw_gmac_pbuf_free(struct pbuf *p)
 {
     struct gmac_lwip_pbuf *lwip_buf = (void *)p;
-    eqos_eth_dev_t *eqos_dev = (void *)lwip_buf->gmacdev->priv;
+    gmac_handle_t *gmac_dev = lwip_buf->gmacdev;
 
     //SYS_ARCH_DECL_PROTECT(old_level);
     //SYS_ARCH_PROTECT(old_level);
-    eqos_free_pkt(eqos_dev, lwip_buf->buf);
+    gmac_dev->ops->free_pkt(gmac_dev->priv, lwip_buf->buf);
     memp_free_pool(lwip_buf->gmacdev->memp_rx_pool, lwip_buf);
     //SYS_ARCH_UNPROTECT(old_level);
 }
@@ -228,28 +226,23 @@ void dw_gmac_pbuf_free(struct pbuf *p)
 static rt_err_t dw_gmac_tx(rt_device_t dev, struct pbuf *p)
 {
     gmac_handle_t *gmac = (gmac_handle_t *)dev;
-    eqos_desc_t *tx_desc;
-    eqos_eth_dev_t *eqos_dev = (void *)gmac->priv;
     struct pbuf *q;
     void *dist;
-    int copy_offset = 0;
+    int copy_offset = 0, ret;
 
     if (!gmac->phy_dev->link_status)
 	return -RT_ERROR;
 
-    tx_desc = &(eqos_dev->tx_descs[eqos_dev->tx_desc_idx]);
-
-    if (tx_desc->des3 & EQOS_DESC3_OWN) {
-	rt_kprintf("current tx discriptor not avail %d", eqos_dev->tx_desc_idx);
-	return -RT_ERROR;
+    ret = gmac->ops->check_descriptor(gmac->priv, &dist);
+    if (ret < 0) {
+	return RT_ERROR;
     }
 
     LOG_DBG("gmac tx packet len %d total len %d\n", p->len, p->tot_len);
 
     for(q = p;q != RT_NULL;q=q->next)
     {
-        dist = eqos_dev->tx_dma_buf[eqos_dev->tx_desc_idx];
-        rt_memcpy(dist+copy_offset,q->payload,q->len);
+        rt_memcpy(dist + copy_offset,q->payload,q->len);
         copy_offset += q->len;
 
         if(copy_offset > HAL_ETHERNET_MTU)
@@ -259,22 +252,20 @@ static rt_err_t dw_gmac_tx(rt_device_t dev, struct pbuf *p)
         }
     }
 
-    return eqos_send(eqos_dev, copy_offset);
+    return gmac->ops->send(gmac->priv, copy_offset);
 
 }
 
 static struct pbuf *dw_gmac_rx(rt_device_t dev)
 {
     gmac_handle_t *gmac = (gmac_handle_t *)dev;
-    eqos_eth_dev_t *eqos_dev = (void *)gmac->priv;
     struct pbuf *pbuf = RT_NULL;
     struct gmac_lwip_pbuf *lwip_buf;
     int rx_index, pkt_len;
     void *packetp;
 
-    if ((pkt_len = eqos_recv(eqos_dev, &rx_index)) > 0) {
+    if ((pkt_len = gmac->ops->recv(gmac->priv, &packetp)) > 0) {
 	LOG_DBG("gmac rx packet len %d\n", pkt_len);
-	packetp = eqos_dev->rx_dma_buf[rx_index];
         lwip_buf = (void *)memp_malloc_pool(gmac->memp_rx_pool);
 	RT_ASSERT(lwip_buf);
         {
@@ -320,6 +311,7 @@ int rt_hw_gmac_init(void)
     {
         gmac_handle_t *gmac = &dw_gmac[i];
 
+	eqos_gmac_ops_init(gmac);
         /* Register member functions */
         gmac->eth.parent.type       = RT_Device_Class_NetIf;
         gmac->eth.parent.init       = dw_gmac_init;
@@ -331,12 +323,6 @@ int rt_hw_gmac_init(void)
         gmac->eth.parent.user_data  = gmac;
         gmac->eth.eth_rx            = dw_gmac_rx;
         gmac->eth.eth_tx            = dw_gmac_tx;
-
-        /* Set MAC address */
-        //nu_gmac_assign_macaddr(psNuGMAC);
-
-        /* Initial GMAC adapter */
-        //nu_gmac_adapter_init(psNuGMAC);
 
         /* Initial zero_copy rx pool */
         memp_init_pool(gmac->memp_rx_pool);

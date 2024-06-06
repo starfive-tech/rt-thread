@@ -111,8 +111,9 @@ static int eqos_set_mii_speed_10(eqos_eth_dev_t *eqos_dev)
     return 0;
 }
 
-int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
+int eqos_set_speed_duplex(void *priv)
 {
+    eqos_eth_dev_t *eqos_dev = (void *)priv;
     int speed_mode, duplex;
 
     speed_mode = eqos_dev->handle->phy_dev->speed_mode;
@@ -147,8 +148,9 @@ int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev)
     return 0;
 }
 
-int eqos_gmac_isr(eqos_eth_dev_t *eqos_dev)
+static int eqos_gmac_isr(void *priv)
 {
+    eqos_eth_dev_t *eqos_dev = priv;
     struct eqos_int *x = &eqos_dev->int_summary;
     unsigned int intr_status, intr_en;
     int ret = 0;
@@ -283,8 +285,25 @@ static int eqos_mdio_write(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *d
     return 0;
 }
 
-int eqos_send(eqos_eth_dev_t *eqos_dev, int length)
+static int eqos_check_descriptor(void *priv, void **buffer)
 {
+    eqos_eth_dev_t *eqos_dev = (void *)priv;
+    eqos_desc_t *tx_desc;
+
+    tx_desc = &(eqos_dev->tx_descs[eqos_dev->tx_desc_idx]);
+
+    if (tx_desc->des3 & EQOS_DESC3_OWN) {
+	hal_printf("current tx discriptor not avail %d", eqos_dev->tx_desc_idx);
+	return -1;
+    }
+
+    *buffer = eqos_dev->tx_dma_buf[eqos_dev->tx_desc_idx];
+    return 0;
+}
+
+static int eqos_send(void *priv, int length)
+{
+    eqos_eth_dev_t *eqos_dev = (void *)priv;
     eqos_desc_t *tx_desc;
     int i;
 
@@ -314,8 +333,9 @@ int eqos_send(eqos_eth_dev_t *eqos_dev, int length)
     return 0;
 }
 
-int eqos_recv(eqos_eth_dev_t *eqos_dev, int *rx_busy)
+static int eqos_recv(void *priv, void **packetp)
 {
+    eqos_eth_dev_t *eqos_dev = priv;
     eqos_desc_t *rx_desc;
     int length;
 
@@ -335,7 +355,8 @@ int eqos_recv(eqos_eth_dev_t *eqos_dev, int *rx_busy)
     mb();
     rx_desc->des3 = 0;
 
-    *rx_busy = eqos_dev->rxbusy;
+    *packetp = eqos_dev->rx_dma_buf[eqos_dev->rxbusy];
+
     eqos_dev->rxbusy++;
     eqos_dev->rxbusy %= EQOS_DESCRIPTORS_RX;
     eqos_dev->busyrxdesc--;
@@ -348,9 +369,10 @@ int eqos_recv(eqos_eth_dev_t *eqos_dev, int *rx_busy)
     return length;
 }
 
-int eqos_free_pkt(eqos_eth_dev_t *eqos_dev, uint8_t *packet)
+static int eqos_free_pkt(void *priv, void *packet)
 {
-    uint8_t *packet_expected;
+    eqos_eth_dev_t *eqos_dev = (void *)priv;
+    void *packet_expected;
     eqos_desc_t *rx_desc;
     char rx_next;
 
@@ -365,20 +387,11 @@ int eqos_free_pkt(eqos_eth_dev_t *eqos_dev, uint8_t *packet)
         return -RT_ERROR;
     }
 
-#if 0
-    sys_gmac_invalidate_cache_range(rounddown((unsigned long)packet, ARCH_DMA_MINALIGN),
-        roundup((unsigned long)packet + length, ARCH_DMA_MINALIGN));
-#endif
     rx_desc = &(eqos_dev->rx_descs[eqos_dev->rxnext]);
     rx_desc->des0 = 0;
     mb();
-#if 0
-    sys_gmac_flush_dcache_range(rounddown((unsigned long)rx_desc, ARCH_DMA_MINALIGN),
-        roundup((unsigned long)rx_desc + EQOS_DESCRIPTOR_SIZE, ARCH_DMA_MINALIGN));
-    sys_gmac_invalidate_cache_range(rounddown((unsigned long)packet, ARCH_DMA_MINALIGN),
-        roundup((unsigned long)packet + length, ARCH_DMA_MINALIGN));
-#endif
-    rx_desc->des0 = (rt_uint32_t)(unsigned long)packet;
+
+    rx_desc->des0 = (uint32_t)(unsigned long)packet;
     rx_desc->des1 = 0;
     rx_desc->des2 = 0;
     /*
@@ -817,7 +830,7 @@ err:
 }
 
 /**********public interface**********/
-gmac_handle_t* gmac_open(gmac_handle_t *gmac)
+static gmac_handle_t* eqos_open(gmac_handle_t *gmac)
 {
     eqos_eth_dev_t *eqos_dev;
     struct rt_phy_device *phy_dev;
@@ -910,5 +923,20 @@ int gmac_set_macaddr(gmac_handle_t *gmac, const uint8_t *mac_id)
     eqos_write_hwaddr(gmac->priv, mac_id);
     eqos_eth_trans_ctrl(gmac->priv, 1);
     return 0;
+}
+
+static struct gmac_ops eqos_ops = {
+    .open = eqos_open,
+    .recv = eqos_recv,
+    .send = eqos_send,
+    .check_descriptor = eqos_check_descriptor,
+    .free_pkt = eqos_free_pkt,
+    .gmac_isr = eqos_gmac_isr,
+    .set_speed_and_duplex = eqos_set_speed_duplex,
+};
+
+void eqos_gmac_ops_init(gmac_handle_t *handle)
+{
+    handle->ops = &eqos_ops;
 }
 

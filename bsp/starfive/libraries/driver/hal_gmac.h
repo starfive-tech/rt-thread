@@ -84,13 +84,24 @@ typedef struct gmac_handle {
     struct gmac_dev *phy_dev;
     struct phy_dts_config phy_config;
     const struct memp_desc *memp_rx_pool;
+    struct gmac_ops *ops;
     void *base;
     void *priv;
     int id;
     char name[16];
 } gmac_handle_t;
 
-gmac_handle_t * gmac_open(gmac_handle_t *);
+
+struct gmac_ops {
+    gmac_handle_t* (*open)(gmac_handle_t *gmac);
+    int (*recv)(void *priv, void **packet);
+    int (*send)(void *priv, int length);
+    int (*check_descriptor)(void *priv, void **buffer);
+    int (*free_pkt)(void *priv, void *packet);
+    int (*gmac_isr)(void *priv);
+    int (*set_speed_and_duplex)(void *priv);
+};
+
 void gmac_plat_init(gmac_handle_t *gmac);
 void gmac_set_board_config(gmac_handle_t *gmac);
 int gmac_close(gmac_handle_t *gmac);
@@ -98,6 +109,14 @@ void phy_link_detect(void *param);
 int gmac_phy_init(gmac_handle_t *handle);
 int genric_gmac_phy_init(gmac_handle_t * handle);
 void gmac_link_change(gmac_handle_t *dev,int up);
+
+void eqos_gmac_ops_init(gmac_handle_t *handle);
+
+#define INT_TX_HARD_ERROR -1
+#define INT_TX 1
+#define INT_RX 2
+
+#define HAL_EQOS_DESC_NUM 256
 
 #if defined(GMAC_DEBUG)
     #define DW_GMAC_TRACE         rt_kprintf

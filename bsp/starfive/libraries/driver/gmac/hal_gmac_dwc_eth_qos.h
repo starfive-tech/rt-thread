@@ -299,7 +299,7 @@ typedef struct gmac_tegra186_regs {
 /* We assume ARCH_DMA_MINALIGN >= 16; 16 is the EQOS HW minimum */
 #define EQOS_DESCRIPTOR_ALIGN   ARCH_DMA_MINALIGN
 #define EQOS_DESCRIPTORS_TX 256
-#define EQOS_DESCRIPTORS_RX 256
+#define EQOS_DESCRIPTORS_RX HAL_EQOS_DESC_NUM
 #define EQOS_DESCRIPTORS_NUM    (EQOS_DESCRIPTORS_TX + EQOS_DESCRIPTORS_RX)
 #define EQOS_DESCRIPTORS_SIZE    ALIGN(EQOS_DESCRIPTORS_NUM * \
                       EQOS_DESCRIPTOR_SIZE, ARCH_DMA_MINALIGN)
@@ -307,7 +307,6 @@ typedef struct gmac_tegra186_regs {
 #define EQOS_MAX_PACKET_SIZE    ALIGN(1568, ARCH_DMA_MINALIGN)
 #define EQOS_RX_BUFFER_SIZE (EQOS_MAX_PACKET_SIZE)
 
-#define HAL_ETHERNET_MTU	1518
 /*
  * Warn if the cache-line size is larger than the descriptor size. In such
  * cases the driver will likely fail because the CPU needs to flush the cache
@@ -384,10 +383,6 @@ typedef struct gmac_eth_dev {
 
 /*********add by adapter**********/
 
-#define INT_TX_HARD_ERROR -1
-#define INT_TX 1
-#define INT_RX 2
-
 #define clrbits(addr, clear) \
     sys_writel(sys_readl(addr) & ~(clear), addr)
 
@@ -405,13 +400,9 @@ typedef struct gmac_eth_dev {
 #define  STATUS_RI                  BIT(6)
 #define  STATUS_FBI                 BIT(13)
 
-int eqos_gmac_isr(eqos_eth_dev_t *eqos_dev);
-int eqos_free_pkt(eqos_eth_dev_t *eqos_dev, uint8_t *packet);
-int eqos_send(eqos_eth_dev_t *eqos_dev, int length);
-int eqos_recv(eqos_eth_dev_t *eqos_dev, int *rx_busy);
 int gmac_mdio_write(gmac_handle_t *gmac, int reg, unsigned int data);
 int gmac_mdio_read(gmac_handle_t *gmac, int reg, void *data);
-int eqos_set_speed_duplex(eqos_eth_dev_t *eqos_dev);
+
 
 #ifdef __cplusplus
 }
