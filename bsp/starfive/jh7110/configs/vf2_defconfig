@@ -1193,6 +1193,11 @@ CONFIG_BSP_USING_PCIE1=y
 CONFIG_PLDA_PCIE=y
 
 #
+# Ethernet Drivers Configuration
+#
+CONFIG_DWC_GMAC=y
+
+#
 # component Configuration
 #
 CONFIG_BSP_USING_RPMSG_LITE=y

@@ -1,0 +1,9 @@
+menu "Ethernet Drivers Configuration"
+
+config DWC_GMAC
+    bool "Enable DWC gmac driver"
+    default n
+    select BSP_USING_GMAC
+
+endmenu
+

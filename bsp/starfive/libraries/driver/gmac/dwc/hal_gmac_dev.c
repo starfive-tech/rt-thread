@@ -6,8 +6,6 @@
  * @brief
  ******************************************************************************
  */
-#include <rthw.h>
-#include <rtdevice.h>
 #include <rtthread.h>
 #include "board.h"
 #include "hal_gmac.h"

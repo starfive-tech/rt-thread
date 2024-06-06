@@ -48,6 +48,7 @@ config BSP_USING_SPI
     select RT_USING_SPI
 
 source "../libraries/driver/pcie/Kconfig"
+source "../libraries/driver/gmac/Kconfig"
 
 endmenu
 

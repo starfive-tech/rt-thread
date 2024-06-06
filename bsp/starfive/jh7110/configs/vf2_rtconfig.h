@@ -355,6 +355,10 @@
 
 #define PLDA_PCIE
 
+/* Ethernet Drivers Configuration */
+
+#define DWC_GMAC
+
 /* component Configuration */
 
 #define BSP_USING_RPMSG_LITE
