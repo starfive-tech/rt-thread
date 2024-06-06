@@ -234,12 +234,6 @@
 /* CYW43012 WiFi */
 
 
-/* BL808 WiFi */
-
-
-/* CYW43439 WiFi */
-
-
 /* IoT Cloud */
 
 
@@ -354,6 +348,12 @@
 
 #define BSP_USING_GMAC
 #define BSP_USING_GMAC1
+#define BSP_USING_PCIE
+#define BSP_USING_PCIE1
+
+/* pcie Drivers Configuration */
+
+#define PLDA_PCIE
 
 /* component Configuration */
 

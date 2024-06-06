@@ -1,0 +1,16 @@
+from building import *
+
+cwd     = GetCurrentDir()
+src = Glob('*.c') + Glob('*.cpp')
+CPPPATH = [cwd + '/include']
+
+group = DefineGroup('pcie', src, depend = ['BSP_USING_PCIE'], CPPPATH = CPPPATH)
+
+objs = [group]
+
+list = os.listdir(cwd)
+
+if GetDepend('PLDA_PCIE'):
+     objs = objs + SConscript(os.path.join('plda', 'SConscript'))
+
+Return('objs')

@@ -47,7 +47,10 @@ int rt_hw_gmac_init(void);
 #if defined(BSP_USING_CAN)
 int rt_hw_canfd_init(void);
 #endif
-
+#if defined(BSP_USING_PCIE)
+int rt_hw_pcie_init(void);
+int get_pcie_reset_gpio(int);
+#endif
 unsigned long sys_cur_time_ms(void);
 void sys_udelay(int us);
 void sys_mdelay(int ms);

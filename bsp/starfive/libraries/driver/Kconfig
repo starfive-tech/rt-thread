@@ -30,10 +30,24 @@ config BSP_USING_CAN
         default n
     endif
 
+config BSP_USING_PCIE
+    bool "Enable pcie driver"
+    default n
+    if BSP_USING_PCIE
+    config BSP_USING_PCIE0
+        bool "Enable pcie 0"
+        default n
+    config BSP_USING_PCIE1
+        bool "Enable pcie 1"
+        default n
+    endif
+
 config BSP_USING_SPI
     bool "Enable spi driver"
     default n
     select RT_USING_SPI
+
+source "../libraries/driver/pcie/Kconfig"
 
 endmenu
 

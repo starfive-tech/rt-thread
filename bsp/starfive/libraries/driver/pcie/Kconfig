@@ -1,0 +1,9 @@
+menu "pcie Drivers Configuration"
+
+config PLDA_PCIE
+    bool "Enable plda driver"
+    default n
+    select BSP_USING_PCIE
+
+endmenu
+

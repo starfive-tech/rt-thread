@@ -17,11 +17,23 @@
 #if defined(BSP_USING_CAN)
 #include "hal_can.h"
 #endif
+#if defined(BSP_USING_PCIE)
+#include "hal_pcie.h"
+#endif
 
 static rt_uint64_t sys_crg_base;
 static rt_uint64_t sys_syscon_base;
 static rt_uint64_t aon_crg_base;
 unsigned long sys_iomux_base;
+unsigned long stg_crg_base;
+unsigned long stg_syscon_base;
+
+#if defined(BSP_USING_PCIE)
+unsigned int STG_ARFUNC_OFFSET[2] = {0xc0, 0x270};
+unsigned int STG_AWFUNC_OFFSET[2] = {0xc4, 0x274};
+unsigned int STG_RP_REP_OFFSET[2] = {0x130, 0x2e0};
+unsigned int STG_LIN_ST_OFFSET[2] = {0x1b8, 0x368};
+#endif
 
 #define ROUNDUP(a, b) ((((a)-1)/(b) +1)*(b))
 #define CAN_DEAULT_RATE 40000000
@@ -101,11 +113,15 @@ static void jh7110_syscon_init()
 	sys_syscon_base = rt_ioremap(SYS_SYSCON_BASE, 4096);
 	aon_crg_base = rt_ioremap(AON_CRG_BASE, 4096);
 	sys_iomux_base = rt_ioremap(SYS_IOMUX_BASE, 4096);
+	stg_crg_base = rt_ioremap(STG_CRG_BASE, 4096);
+	stg_syscon_base = rt_ioremap(STG_SYSCON_BASE, 4096);
 #else
 	sys_crg_base = SYS_CRG_BASE;
 	sys_syscon_base = SYS_SYSCON_BASE;
 	aon_crg_base = AON_CRG_BASE;
 	sys_iomux_base = SYS_IOMUX_BASE;
+	stg_crg_base = STG_CRG_BASE;
+	stg_syscon_base = STG_SYSCON_BASE;
 #endif
 }
 
@@ -378,6 +394,131 @@ static void jh7110_env_init(void)
     jh7110_uart_init();
 }
 
+#if defined(BSP_USING_PCIE)
+static int starfive_pcie_link_up(struct pcie *pcie)
+{
+#define DATA_LINK_ACTIVE			BIT(5)
+	int ret;
+	unsigned int stg_reg_val;
+
+	stg_reg_val = sys_readl(stg_syscon_base + STG_LIN_ST_OFFSET[pcie->index]);
+
+	return (stg_reg_val & DATA_LINK_ACTIVE);
+}
+
+static int pcie_post_init(struct pcie *pcie)
+{
+
+    int i, retries;
+    /*
+     * Ensure that PERST has been asserted for at least 100 ms,
+    * the sleep value is T_PVPERL from PCIe CEM spec r2.0 (Table 2-4)
+    */
+
+    sys_mdelay(100);
+
+    jh7110_gpio_direction_output(pcie->cfg.reset_gpio, 1);
+
+   /*
+    * With a Downstream Port (<=5GT/s), software must wait a minimum
+    * of 100ms following exit from a conventional reset before
+    * sending a configuration request to the device.
+    */
+    sys_mdelay(100);
+
+    /* Check if the link is up or not */
+    for (retries = 0; retries < LINK_WAIT_MAX_RETRIES; retries++) {
+	    if (starfive_pcie_link_up(pcie)) {
+		    hal_printf("port link up\n");
+		    pcie->link_up = 1;
+		    return 0;
+	    }
+	    sys_udelay(LINK_WAIT_USLEEP_MIN);
+    }
+
+    pcie->link_up = 0;
+
+    hal_printf("port link down\n");
+
+    return 0;
+}
+
+void pcie_plat_init(struct pcie *pcie)
+{
+#define PLDA_FUNC_NUM 4
+#define PCI_MISC 0xb4
+    int i;
+
+    sys_setbits(sys_crg_base + NOC_BUS_STG_AXI, BIT(31));
+
+    sys_clrsetbits(stg_syscon_base + STG_RP_REP_OFFSET[pcie->index],
+		STG_SYSCON_K_RP_NEP_MASK,
+		STG_SYSCON_K_RP_NEP_MASK);
+    sys_clrsetbits(stg_syscon_base + STG_AWFUNC_OFFSET[pcie->index],
+		STG_SYSCON_CKREF_SRC_MASK,
+		2 << STG_SYSCON_CKREF_SRC_SHIFT);
+    sys_clrsetbits(stg_syscon_base + STG_AWFUNC_OFFSET[pcie->index],
+		STG_SYSCON_CLKREQ_MASK,
+		STG_SYSCON_CLKREQ_MASK);
+
+    pcie->cfg.reset_gpio = get_pcie_reset_gpio(pcie->index);
+    if (pcie->index == 0) {
+	/* todo RT_USING_SMART */
+	//pcie->cfg.bridge_base = rt_ioremap(0x2b000000, 0x10000);
+	pcie->cfg.bridge_base  = (void *)0x2b000000;
+	pcie->cfg.cfg_base = (void *)0x940000000;
+	pcie->cfg.mem32_base = 0x30000000;
+	pcie->cfg.mem64_base = 0x900000000;
+
+	pcie->irq = 56;
+
+	sys_clrsetbits(stg_crg_base + STG_PCIE_RESET_OFFSET,
+			    GENMASK(16, 11), 0);
+
+	sys_setbits(stg_crg_base + JH7110_STGCLK_PCIE0_AXI_MST0, BIT(31));
+	sys_setbits(stg_crg_base + JH7110_STGCLK_PCIE0_APB, BIT(31));
+	sys_setbits(stg_crg_base + JH7110_STGCLK_PCIE0_TL, BIT(31));
+    } else {
+	/* todo RT_USING_SMART */
+	//pcie->bridge_base = rt_ioremap(0x2c000000, 0x10000);
+	pcie->cfg.bridge_base = (void *)0x2c000000;
+	pcie->cfg.cfg_base = (void *)0x9c0000000;
+	pcie->cfg.mem32_base = 0x38000000;
+	pcie->cfg.mem64_base = 0x980000000;
+
+	pcie->irq = 57;
+	sys_clrsetbits(stg_crg_base + STG_PCIE_RESET_OFFSET,
+			    GENMASK(22, 17), 0);
+	sys_setbits(stg_crg_base + JH7110_STGCLK_PCIE1_AXI_MST0, BIT(31));
+	sys_setbits(stg_crg_base + JH7110_STGCLK_PCIE1_APB, BIT(31));
+	sys_setbits(stg_crg_base + JH7110_STGCLK_PCIE1_TL, BIT(31));
+    }
+    pcie->cfg.mem64_log = 30;
+    pcie->cfg.mem32_log = 27;
+    jh7110_gpio_direction_output(pcie->cfg.reset_gpio, 0);
+
+    /* Disable physical functions except #0 */
+    for (i = 1; i < PLDA_FUNC_NUM; i++) {
+	    sys_clrsetbits(stg_syscon_base + STG_ARFUNC_OFFSET[pcie->index],
+		    STG_SYSCON_AXI4_SLVL_ARFUNC_MASK,
+		    (i << PLDA_PHY_FUNC_SHIFT) <<
+		    STG_SYSCON_AXI4_SLVL_ARFUNC_SHIFT);
+	    sys_clrsetbits(stg_syscon_base + STG_AWFUNC_OFFSET[pcie->index],
+		    STG_SYSCON_AXI4_SLVL_AWFUNC_MASK,
+		    (i << PLDA_PHY_FUNC_SHIFT) <<
+		    STG_SYSCON_AXI4_SLVL_AWFUNC_SHIFT);
+	    sys_setbits(pcie->cfg.bridge_base + PCI_MISC, BIT(15));
+    }
+
+    sys_clrsetbits(stg_syscon_base + STG_ARFUNC_OFFSET[pcie->index],
+		    STG_SYSCON_AXI4_SLVL_ARFUNC_MASK, 0);
+    sys_clrsetbits(stg_syscon_base + STG_AWFUNC_OFFSET[pcie->index],
+		    STG_SYSCON_AXI4_SLVL_AWFUNC_MASK, 0);
+
+    pcie->cfg.pcie_post_init_cb = pcie_post_init;
+}
+#endif
+
 void jh7110_driver_init(void)
 {
     while (!env_is_ready()) {
@@ -391,5 +532,8 @@ void jh7110_driver_init(void)
 #endif
 #if defined(BSP_USING_CAN)
     rt_hw_canfd_init();
+#endif
+#if defined(BSP_USING_PCIE)
+    rt_hw_pcie_init();
 #endif
 }

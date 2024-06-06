@@ -93,6 +93,16 @@ void uart_set_pinctrl(int id)
 }
 #endif
 
+#if defined(BSP_USING_PCIE)
+int get_pcie_reset_gpio(int i)
+{
+	if (i == 0)
+		return 26;
+	else
+		return 28;
+}
+#endif
+
 void *get_rpmsg_sharemem_base()
 {
 	return (void *)0x6e400000;
