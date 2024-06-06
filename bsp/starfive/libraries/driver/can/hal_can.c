@@ -316,7 +316,7 @@ int rt_hw_canfd_init(void)
         RT_ASSERT(ret == RT_EOK);
 
         /* Register ISR. */
-        rt_hw_interrupt_install(ipms_cans[i].irq, ipms_canfd_isr, (void *)&ipms_canfd_ops, ipms_cans[i].cfg.name);
+        rt_hw_interrupt_install(ipms_cans[i].irq, ipms_canfd_isr, (void *)&ipms_cans[i], ipms_cans[i].cfg.name);
 
         /* Unmask interrupt. */
         rt_hw_interrupt_umask(ipms_cans[i].irq);
