@@ -4,6 +4,8 @@
 
 #include <riscv_io.h>
 #include "hal_pcie.h"
+#include "../pci.h"
+
 #include "../pci_ids.h"
 #include "board.h"
 #include "pcie.h"
@@ -11,6 +13,11 @@
 static struct plda_pcie plda_inst[2];
 
 extern uint32_t pci_size, offset;
+#define ECAM_BUS_SHIFT			20
+#define ECAM_DEV_SHIFT			15
+#define ECAM_FUNC_SHIFT			12
+/* Secondary bus number offset in config space */
+#define PCI_SECONDARY_BUS		0x19
 
 #if 0
 static inline void plda_set_default_msi(struct plda_msi *msi)
@@ -41,15 +48,11 @@ static inline void plda_pcie_disable_ltr(void *bridge_addr)
 	sys_clrbits(bridge_addr + PMSG_SUPPORT_RX, PMSG_LTR_SUPPORT);
 }
 
-#if 0
-static inline void plda_pcie_write_rc_bar(void *bridge_addr, uint64_t val)
+static inline void plda_pcie_clear_rc_bar(void *bridge_addr)
 {
-	void __iomem *addr = plda->bridge_addr + CONFIG_SPACE_ADDR_OFFSET;
-
-	sys_writel(val && 0xffffffff, addr + PCI_BASE_ADDRESS_0);
-	writel_relaxed(upper_32_bits(val), addr + PCI_BASE_ADDRESS_1);
+	sys_writel(0, bridge_addr + 0x1000 + PCI_BASE_ADDRESS_0);
+	sys_writel(0, bridge_addr + 0x1000 + PCI_BASE_ADDRESS_1);
 }
-#endif
 
 void xr3pci_set_atr_entry(unsigned long base, unsigned long src_addr,
 			unsigned long trsl_addr, int window_size,
@@ -152,6 +155,107 @@ static int pcie_irq_handle(void *priv)
     return 0;
 }
 
+static int starfive_pcie_addr_valid(pci_dev_t bdf, int first_busno)
+{
+	if ((PCI_BUS(bdf) == first_busno) && (PCI_DEV(bdf) > 0))
+		return 0;
+	if ((PCI_BUS(bdf) == first_busno + 1) && (PCI_DEV(bdf) > 0))
+		return 0;
+
+	return 1;
+}
+
+static int starfive_pcie_off_conf(pci_dev_t bdf, unsigned int offset, int first_busno)
+{
+	unsigned int bus = PCI_BUS(bdf) - first_busno;
+	unsigned int dev = PCI_DEV(bdf);
+	unsigned int func = PCI_FUNC(bdf);
+
+	return (bus << ECAM_BUS_SHIFT) | (dev << ECAM_DEV_SHIFT) |
+			(func << ECAM_FUNC_SHIFT) | (offset & ~0x3);
+}
+
+static int plda_pcie_hide_rc_bar(pci_dev_t bdf, int offset, int first_busno)
+{
+	if ((PCI_BUS(bdf) == first_busno) &&
+	    (offset == PCI_BASE_ADDRESS_0 || offset == PCI_BASE_ADDRESS_1))
+		return 1;
+
+	return 0;
+}
+
+static int starfive_pcie_config_read(const struct udevice *udev, pci_dev_t bdf,
+				unsigned int offset, unsigned long *valuep,
+				enum pci_size_t size)
+{
+	void *addr;
+	unsigned long value;
+	struct plda_pcie *priv = (void *)udev->priv;
+	int where = starfive_pcie_off_conf(bdf, offset, priv->first_busno);
+
+	if (!starfive_pcie_addr_valid(bdf, priv->first_busno)) {
+		//hal_printf("Out of range\n");
+		*valuep = 0xffff;
+		//*valuep = pci_get_ff(size);
+		return 0;
+	}
+
+	addr = priv->cfg_base;
+	addr += where;
+
+	if (!addr)
+		return -1;
+
+	/* Make sure the LAST TLP is finished, before reading vendor ID. */
+	//if (offset == PCI_VENDOR_ID)
+		//sys_mdelay(20);
+
+	value = sys_readl(addr);
+	*valuep = pci_conv_32_to_size(value, offset, size);
+	//hal_printf("config read where 0x%x bdf 0x%x offset 0x%x val 0x%x\n", where, bdf, offset, *valuep);
+
+	return 0;
+
+}
+
+int starfive_pcie_config_write(struct udevice *udev, pci_dev_t bdf,
+				 unsigned int offset, unsigned long value,
+				 enum pci_size_t size)
+{
+	void *addr;
+	unsigned long old;
+	struct plda_pcie *priv = (void *)udev->priv;
+	int where = starfive_pcie_off_conf(bdf, offset, priv->first_busno);
+
+	if (plda_pcie_hide_rc_bar(bdf, offset, priv->first_busno))
+		return -1;
+
+	if (!starfive_pcie_addr_valid(bdf, priv->first_busno)) {
+		//hal_printf("Out of range\n");
+		return 0;
+	}
+
+	//hal_printf("config write where 0x%x bdf 0x%x offset 0x%x value 0x%x\n",  where, bdf, offset, value);
+	addr = priv->cfg_base;
+	addr += where;
+
+	if (!addr)
+		return -1;
+
+	old = sys_readl(addr);
+	value = pci_conv_size_to_32(old, value, offset, size);
+	sys_writel(value, addr);
+
+	return 0;
+}
+
+
+static const struct dm_pci_ops starfive_pcie_ops = {
+	.read_config	= starfive_pcie_config_read,
+	.write_config	= starfive_pcie_config_write,
+};
+
+
 #if 0
 
 void pcie_msi_enable(struct generic_ecam_pcie *pcie)
@@ -184,6 +288,8 @@ int pcie_init(struct pcie *pcie)
     plda->cfg_base = pcie->cfg.cfg_base;
 
     plda_pcie_enable_root_port(pcie->cfg.bridge_base);
+
+    plda_pcie_clear_rc_bar(pcie->cfg.bridge_base);
 	//plda_pcie_write_rc_bar(plda, 0);
 
 	/* PCIe PCI Standard Configuration Identification Settings. */
@@ -208,6 +314,9 @@ int pcie_init(struct pcie *pcie)
 
     pcie->irq_handle = pcie_irq_handle;
 
+    if (pcie->link_up) {
+	plda->first_busno = pci_scan_bus(pcie, (void *)&starfive_pcie_ops);
+    }
     return 0;
 }
 

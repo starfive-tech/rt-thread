@@ -23,9 +23,11 @@ struct pcie {
     int link_up:1;
     int (*irq_handle)(void *priv);
     void *priv;
+    void *bus_device;
 };
 
 int pcie_init(struct pcie *pcie);
 void pcie_plat_init(struct pcie *pcie);
+int pci_scan_bus(struct pcie *pcie, void *pci_ops);
 
 #endif

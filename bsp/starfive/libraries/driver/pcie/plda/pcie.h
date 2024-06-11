@@ -94,6 +94,8 @@ struct plda_pcie {
      void *bridge_base;
      void *cfg_base;
      int atr_num;
+     int first_busno;
+     int second_bus_num;
 };
 
 #endif /* __VEXPRESS64_PCIE_H__ */
