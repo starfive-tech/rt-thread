@@ -508,6 +508,9 @@ int pci_probe(struct udevice *bus)
 	if (!ret)
 		ret = pci_auto_config_devices(bus);
 
+	bus->msi_dev.dev = bus;
+	pcie_init_capabilities(&bus->msi_dev);
+
 	return ret;
 }
 

@@ -58,9 +58,12 @@ int pci_scan_bus(struct pcie *pcie, void *pci_ops)
     return ret;
 }
 
-#if 0
-void get_bus_first_no(int dev_num)
+int register_msi_irq(void *arg, int (*handler)(void *arg), int pci_num)
 {
-    return bus_device[dev_num].dev.seq;
+	struct pci_device *pci_device = &bus_device[pci_num].pci_dev[0];
+
+	pci_device->dev.ops->register_msi(pci_device->dev.priv, arg, handler);
+
+	return 0;
 }
-#endif
+

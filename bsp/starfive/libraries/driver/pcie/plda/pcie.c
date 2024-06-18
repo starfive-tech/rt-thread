@@ -19,14 +19,6 @@ extern uint32_t pci_size, offset;
 /* Secondary bus number offset in config space */
 #define PCI_SECONDARY_BUS		0x19
 
-#if 0
-static inline void plda_set_default_msi(struct plda_msi *msi)
-{
-	msi->vector_phy = IMSI_ADDR;
-	msi->num_vectors = PLDA_MAX_NUM_MSI_IRQS;
-}
-#endif
-
 static inline void plda_pcie_enable_root_port(void *bridge_addr)
 {
 	sys_setbits(bridge_addr + GEN_SETTINGS, RP_ENABLE);
@@ -134,6 +126,56 @@ static void plda_pcie_handle_errors_irq(struct plda_pcie *pcie, uint32_t status)
 
 }
 
+static void plda_handle_msi(struct plda_pcie *pcie)
+{
+	uint32_t reg_val;
+	int ret, i;
+
+	reg_val = sys_readl(pcie->bridge_base + XR3PCI_ISTATUS_MSI);
+	if (reg_val) {
+		for (i = 0; i < 8; i++) {
+			if (reg_val & BIT(i)) {
+				sys_writel(BIT(i), pcie->bridge_base  + XR3PCI_ISTATUS_MSI);
+				pcie->msi[i].msi_handler(pcie->msi[i].arg);
+			}
+		}
+	}
+}
+
+static void plda_compose_msi_msg(void *priv, void *msi)
+{
+	struct msi_msg *msg = (void *)msi;
+
+	msg->address_lo = IMSI_ADDR;
+	msg->address_hi = 0;
+	//msg->data = data->hwirq;
+
+	hal_printf("msi#%x address_hi %#x address_lo %#x\n",
+		(int)msg->data, msg->address_hi, msg->address_lo);
+}
+
+static void plda_enable_int(struct plda_pcie *pcie)
+{
+	unsigned int reg_val;
+
+	sys_writel(0, pcie->bridge_base + IMASK_LOCAL);
+
+	reg_val =  INT_ERRORS | INT_PCIE_MSI;
+
+	sys_writel(reg_val, pcie->bridge_base + IMASK_LOCAL);
+}
+
+static void plda_register_msi(void *instance, void *arg, void *handler)
+{
+	struct plda_pcie *pcie = instance;
+	int msi_index = pcie->allocate_irq_num;
+
+	pcie->msi[msi_index].arg = arg;
+	pcie->msi[msi_index].msi_handler = handler;
+	pcie->msi[msi_index].irqno = pcie->allocate_irq_num;
+	pcie->allocate_irq_num++;
+}
+
 static int pcie_irq_handle(void *priv)
 {
     struct plda_pcie *pcie = (struct plda_pcie *)priv;
@@ -143,14 +185,10 @@ static int pcie_irq_handle(void *priv)
 //     printf("XR3PCI_ISTATUS_LOCAL = 0x%x\r\n", reg_val);
     sys_writel(reg_val, pcie->bridge_base + XR3PCI_ISTATUS_LOCAL);
 
-	if (reg_val & INT_ERRORS)
-		plda_pcie_handle_errors_irq(pcie, reg_val);
+    if (reg_val & INT_ERRORS)
+	plda_pcie_handle_errors_irq(pcie, reg_val);
 
-    reg_val = sys_readl(pcie->bridge_base + XR3PCI_ISTATUS_MSI);
-    if (reg_val)
-	hal_printf("msi interrupt\n");
-	//     printf("XR3PCI_ISTATUS_MSI = 0x%x\r\n", reg_val);
-    sys_writel(reg_val, pcie->bridge_base + XR3PCI_ISTATUS_MSI);
+    plda_handle_msi(pcie);
 
     return 0;
 }
@@ -253,8 +291,9 @@ int starfive_pcie_config_write(struct udevice *udev, pci_dev_t bdf,
 static const struct dm_pci_ops starfive_pcie_ops = {
 	.read_config	= starfive_pcie_config_read,
 	.write_config	= starfive_pcie_config_write,
+	.register_msi   = plda_register_msi,
+	.compose_msi    = plda_compose_msi_msg,
 };
-
 
 #if 0
 
@@ -312,6 +351,7 @@ int pcie_init(struct pcie *pcie)
 
     xr3pci_setup_atr(plda);
 
+    plda_enable_int(plda);
     pcie->irq_handle = pcie_irq_handle;
 
     if (pcie->link_up) {

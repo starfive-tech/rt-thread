@@ -20,6 +20,7 @@
 #define  PMSG_LTR_SUPPORT			BIT(2)
 
 
+
 //#define XR3_PCI_ECAM_START		0x40000000
 #define XR3_PCI_ECAM_SIZE		28	/* as power of 2 = 0x10000000 */
 //#define XR3_PCI_IOSPACE_START		0x5f800000
@@ -42,7 +43,9 @@
 #define XR3PCI_BRIDGE_PCI_IDS		0x9c
 #define XR3PCI_PCIE_PCI_MISC        0xb4
 #define XR3PCI_PEX_SPC2			0xd8
+#define IMASK_LOCAL			0x180
 #define XR3PCI_ISTATUS_LOCAL    0x184
+#define IMSI_ADDR			0x190
 #define XR3PCI_ISTATUS_MSI    0x194
 #define XR3PCI_ISTATUS_DMA0		0x1b0
 
@@ -85,17 +88,28 @@
 #define INT_PCIE_POST_ERROR		BIT(20)
 #define INT_PCIE_FETCH_ERROR		BIT(21)
 #define INT_PCIE_DISCARD_ERROR		BIT(22)
+#define INT_PCIE_DISCARD_ERROR		BIT(22)
+#define INT_PCIE_MSI			BIT(28)
+
 #define INT_ERRORS		(INT_DMA_ERROR | INT_AXI_POST_ERROR | INT_AXI_FETCH_ERROR | \
 				 INT_AXI_DISCARD_ERROR | INT_PCIE_POST_ERROR | \
 				 INT_PCIE_FETCH_ERROR | INT_PCIE_DISCARD_ERROR)
 
+struct plda_msi {
+     int (*msi_handler)(void *);
+     void *arg;
+     int irqno;
+};
+
 struct plda_pcie {
      struct pcie *pcie;
+     struct plda_msi msi[8];
      void *bridge_base;
      void *cfg_base;
      int atr_num;
      int first_busno;
      int second_bus_num;
+     int allocate_irq_num;
 };
 
 #endif /* __VEXPRESS64_PCIE_H__ */

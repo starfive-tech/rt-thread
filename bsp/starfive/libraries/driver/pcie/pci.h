@@ -6,6 +6,7 @@
  * (C) Copyright 2002
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
+#include "msi.h"
 
 #ifndef _PCI_H
 #define _PCI_H
@@ -31,8 +32,10 @@
 #define  PCI_COMMAND_WAIT	0x80	/* Enable address/data stepping */
 #define  PCI_COMMAND_SERR	0x100	/* Enable SERR */
 #define  PCI_COMMAND_FAST_BACK	0x200	/* Enable back-to-back writes */
+#define  PCI_COMMAND_INTX_DISABLE 0x400 /* INTx Emulation Disable */
 
 #define PCI_STATUS		0x06	/* 16 bits */
+#define  PCI_STATUS_IMM_READY	0x01	/* Immediate Readiness */
 #define  PCI_STATUS_CAP_LIST	0x10	/* Support Capability List */
 #define  PCI_STATUS_66MHZ	0x20	/* Support 66 Mhz PCI 2.1 bus */
 #define  PCI_STATUS_UDF		0x40	/* Support User Definable Features [obsolete] */
@@ -343,7 +346,9 @@
 #define PCI_CAP_SIZEOF		4
 
 /* Power Management Registers */
+/* Power Management Registers */
 
+#define PCI_PM_PMC		2	/* PM Capabilities Register */
 #define  PCI_PM_CAP_VER_MASK	0x0007	/* Version */
 #define  PCI_PM_CAP_PME_CLOCK	0x0008	/* PME clock required */
 #define  PCI_PM_CAP_AUX_POWER	0x0010	/* Auxilliary power support */
@@ -351,6 +356,13 @@
 #define  PCI_PM_CAP_D1		0x0200	/* D1 power state support */
 #define  PCI_PM_CAP_D2		0x0400	/* D2 power state support */
 #define  PCI_PM_CAP_PME		0x0800	/* PME pin supported */
+#define  PCI_PM_CAP_PME_MASK	0xF800	/* PME Mask of all supported states */
+#define  PCI_PM_CAP_PME_D0	0x0800	/* PME# from D0 */
+#define  PCI_PM_CAP_PME_D1	0x1000	/* PME# from D1 */
+#define  PCI_PM_CAP_PME_D2	0x2000	/* PME# from D2 */
+#define  PCI_PM_CAP_PME_D3hot	0x4000	/* PME# from D3 (hot) */
+#define  PCI_PM_CAP_PME_D3cold	0x8000	/* PME# from D3 (cold) */
+#define  PCI_PM_CAP_PME_SHIFT	11	/* Start of the PME Mask in PMC */
 #define PCI_PM_CTRL		4	/* PM control and status register */
 #define  PCI_PM_CTRL_STATE_MASK 0x0003	/* Current power state (D0 to D3) */
 #define  PCI_PM_CTRL_PME_ENABLE 0x0100	/* PME pin enable */
@@ -404,6 +416,7 @@
 
 /* Message Signalled Interrupts registers */
 
+#if 0
 #define PCI_MSI_FLAGS		2	/* Various flags */
 #define  PCI_MSI_FLAGS_64BIT	0x80	/* 64-bit addresses allowed */
 #define  PCI_MSI_FLAGS_QSIZE	0x70	/* Message queue size configured */
@@ -415,6 +428,7 @@
 #define PCI_MSI_ADDRESS_HI	8	/* Upper 32 bits (if PCI_MSI_FLAGS_64BIT set) */
 #define PCI_MSI_DATA_32		8	/* 16 bits of data for 32-bit devices */
 #define PCI_MSI_DATA_64		12	/* 16 bits of data for 64-bit devices */
+#endif
 
 #define PCI_MAX_PCI_DEVICES	32
 #define PCI_MAX_PCI_FUNCTIONS	8
@@ -903,6 +917,9 @@ struct dm_pci_ops {
 	 */
 	int (*write_config)(struct udevice *bus, pci_dev_t bdf, unsigned int offset,
 			    unsigned long value, enum pci_size_t size);
+
+	void (*register_msi)(void *inst, void *, void *);
+	void (*compose_msi)(void *, void *);
 };
 
 /* Get access to a PCI bus' operations */
@@ -1719,6 +1736,11 @@ struct pci_driver_entry {
 
 #endif /* __ASSEMBLY__ */
 
+#define PCI_IRQ_LEGACY		(1 << 0) /* Allow legacy interrupts */
+#define PCI_IRQ_MSI		(1 << 1) /* Allow MSI interrupts */
+#define PCI_IRQ_MSIX		(1 << 2) /* Allow MSI-X interrupts */
+#define PCI_IRQ_AFFINITY	(1 << 3) /* Auto-assign affinity */
+
 struct udevice {
     int seq;
     //int second_bus;
@@ -1726,6 +1748,7 @@ struct udevice {
     struct pci_child_plat pplat;
     struct pci_controller *hose;
     struct dm_pci_ops *ops;
+    struct pci_msi_dev msi_dev;
     int dev_num;
     void *priv;
 };
@@ -1775,5 +1798,13 @@ void dm_pciauto_prescan_setup_bridge(struct udevice *dev, int sub_bus);
 void dm_pciauto_postscan_setup_bridge(struct udevice *dev, int sub_bus);
 int dm_pciauto_config_device(struct udevice *dev);
 int pci_probe(struct udevice *bus);
+
+enum pci_pm_state {
+	PCI_D0 = 0,
+	PCI_D1,
+	PCI_D2,
+	PCI_D3hot,
+	PCI_D3cold,
+};
 
 #endif /* _PCI_H */
