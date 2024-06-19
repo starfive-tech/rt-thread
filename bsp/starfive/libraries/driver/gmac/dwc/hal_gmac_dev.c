@@ -317,7 +317,7 @@ static int gmac_phy_preinit(struct gmac_dev *dev)
     if (bmsr & BMSR_LSTATUS) {
 	    ret = gmac_phy_init(handle);
 	    if (ret == 0)
-	        dev->link_status = RT_TRUE;
+	        dev->link_status = 1;
     } else {
 	dev->speed_mode = handle->gmac_config.speed_mode;
 	dev->speed = handle->gmac_config.speed;
@@ -336,7 +336,7 @@ int genric_gmac_phy_init(gmac_handle_t * handle)
 
     dev = (struct gmac_dev *)hal_malloc(sizeof(struct gmac_dev));
     if (!dev)
-	return -RT_ERROR;
+	return -1;
 
     memset(dev, 0, sizeof(struct gmac_dev));
     dev->advertising = PHY_GBIT_FEATURES;

@@ -15,6 +15,7 @@
 #include "board.h"
 #include "interrupt.h"
 #include "hal_gmac.h"
+#include "plic.h"
 
 #if 0
 #define DBG_ENABLE
@@ -123,6 +124,7 @@ void gmac_link_change(gmac_handle_t *dev,int up)
 	}
 	eth_device_linkchange(&dev->eth, RT_TRUE);
 	dev->phy_dev->link_status = RT_TRUE;
+	plic_set_priority(dev->gmac_config.irq, 2);
 	rt_hw_plic_irq_enable(dev->gmac_config.irq);
     }
     else {
@@ -159,13 +161,17 @@ static rt_err_t dw_gmac_init(rt_device_t device)
     int ret;
     RT_ASSERT(device);
 
+    if (gmac->pcie_iobase)
+	gmac->msi_handler = rt_hw_gmac_isr;
     gmac = gmac->ops->open(gmac);
 
     if (!gmac)
 	return -RT_ERROR;
 
     gmac_name[4] = '0' + gmac->id;
-    rt_hw_interrupt_install(gmac->gmac_config.irq, rt_hw_gmac_isr, gmac, gmac_name);
+    if (!gmac->pcie_iobase)
+	rt_hw_interrupt_install(gmac->gmac_config.irq, rt_hw_gmac_isr, gmac, gmac_name);
+
     if (gmac->phy_dev) {
 	if (gmac->phy_dev->link_status)
 		gmac_link_change(gmac, 1);
@@ -179,7 +185,8 @@ static rt_err_t dw_gmac_init(rt_device_t device)
 
 	if (link_detect != RT_NULL)
 		rt_thread_startup(link_detect);
-    }
+    } else
+	eth_device_linkchange(&gmac->eth, RT_TRUE);
 
     return 0;
 }
@@ -245,7 +252,7 @@ static rt_err_t dw_gmac_tx(rt_device_t dev, struct pbuf *p)
     void *dist;
     int copy_offset = 0, ret;
 
-    if (!gmac->phy_dev->link_status)
+    if (gmac->phy_dev && !gmac->phy_dev->link_status)
 	return -RT_ERROR;
 
     ret = gmac->ops->check_descriptor(gmac->priv, &dist);

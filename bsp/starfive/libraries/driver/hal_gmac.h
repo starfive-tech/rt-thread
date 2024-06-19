@@ -88,6 +88,7 @@ typedef struct gmac_handle {
     void *base;
     void *priv;
     unsigned long pcie_iobase;
+    void (*msi_handler)(int, void *);
     int id;
     char name[16];
 } gmac_handle_t;
@@ -112,6 +113,7 @@ int genric_gmac_phy_init(gmac_handle_t * handle);
 void gmac_link_change(gmac_handle_t *dev,int up);
 
 void eqos_gmac_ops_init(gmac_handle_t *handle);
+int rtl_gmac_ops_init(gmac_handle_t *handle);
 
 #define INT_TX_HARD_ERROR -1
 #define INT_TX 1
