@@ -11,6 +11,9 @@ config BSP_USING_GMAC
     config BSP_USING_GMAC1
         bool "Enable gmac1"
         default n
+    config BSP_USING_EXT_GMAC
+        bool "Enable extern pcie gmac"
+        default n
     config GMAC_DEBUG
         bool "enable GMAC debug print"
 	default n

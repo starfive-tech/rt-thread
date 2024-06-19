@@ -34,6 +34,9 @@ enum
 #if defined(BSP_USING_GMAC1)
     GMAC1_IDX,
 #endif
+#if defined(BSP_USING_EXT_GMAC)
+    GMAC_EXT_IDX,
+#endif
     GMAC_CNT,
 };
 
@@ -43,7 +46,7 @@ struct gmac_lwip_pbuf {
     gmac_handle_t *gmacdev;
 };
 
-#define HAL_ETHERNET_MTU	1518
+#define HAL_ETHERNET_MTU	1536
 
 /* Private variables ------------------------------------------------------------*/
 #if defined(BSP_USING_GMAC0)
@@ -52,6 +55,10 @@ struct gmac_lwip_pbuf {
 
 #if defined(BSP_USING_GMAC1)
     LWIP_MEMPOOL_DECLARE(gmac1_rx, HAL_EQOS_DESC_NUM, sizeof(struct gmac_lwip_pbuf), "GMAC1 RX PBUF pool");
+#endif
+
+#if defined(BSP_USING_EXT_GMAC)
+    LWIP_MEMPOOL_DECLARE(gmac_ext_rx, HAL_EQOS_DESC_NUM, sizeof(struct gmac_lwip_pbuf), "pcie gmac RX PBUF pool");
 #endif
 
 static gmac_handle_t dw_gmac[] =
@@ -68,6 +75,14 @@ static gmac_handle_t dw_gmac[] =
 	.name		 =  "gmac1",
 	.id		 =  1,
 	.memp_rx_pool	 =  &memp_gmac1_rx,
+},
+#endif
+#if defined(BSP_USING_EXT_GMAC) /* pcie gmac */
+{
+	.name		 =  "gmac_ext",
+	.id		 =  2,
+	.memp_rx_pool	 =  &memp_gmac_ext_rx,
+	.pcie_iobase	 = 0,
 },
 #endif
 };
@@ -151,19 +166,19 @@ static rt_err_t dw_gmac_init(rt_device_t device)
 
     gmac_name[4] = '0' + gmac->id;
     rt_hw_interrupt_install(gmac->gmac_config.irq, rt_hw_gmac_isr, gmac, gmac_name);
-    if (gmac->phy_dev->link_status)
-	gmac_link_change(gmac, 1);
+    if (gmac->phy_dev) {
+	if (gmac->phy_dev->link_status)
+		gmac_link_change(gmac, 1);
 
-    link_detect = rt_thread_create("link_detect",
+	link_detect = rt_thread_create("link_detect",
 			    phy_link_detect,
 			    (void *)gmac,
 			    4096,
 			    13,
 			    20);
 
-    if (link_detect != RT_NULL)
-    {
-        rt_thread_startup(link_detect);
+	if (link_detect != RT_NULL)
+		rt_thread_startup(link_detect);
     }
 
     return 0;
@@ -283,9 +298,6 @@ static struct pbuf *dw_gmac_rx(rt_device_t dev)
 	        rt_kprintf("%s: failed to alloted %08x\n", gmac->name, pbuf);
          }
     }
-    else {
-
-    }
 
     return pbuf;
 }
@@ -311,7 +323,14 @@ int rt_hw_gmac_init(void)
     {
         gmac_handle_t *gmac = &dw_gmac[i];
 
-	eqos_gmac_ops_init(gmac);
+#if defined(BSP_USING_EXT_GMAC)
+	if (i == GMAC_EXT_IDX) {
+		ret = rtl_gmac_ops_init(gmac);
+		if (ret < 0)
+			break;
+	} else
+#endif
+		eqos_gmac_ops_init(gmac);
         /* Register member functions */
         gmac->eth.parent.type       = RT_Device_Class_NetIf;
         gmac->eth.parent.init       = dw_gmac_init;
@@ -328,7 +347,11 @@ int rt_hw_gmac_init(void)
         memp_init_pool(gmac->memp_rx_pool);
 	eth_device_linkchange(&gmac->eth, RT_FALSE);
 
-	get_gmac_addr_from_sharemem(gmac, gmac->id);
+#if defined(BSP_USING_EXT_GMAC)
+	if (i != GMAC_EXT_IDX)
+#endif
+		get_gmac_addr_from_sharemem(gmac, gmac->id);
+
         /* Register eth device */
         ret = eth_device_init(&gmac->eth, gmac->name);
 

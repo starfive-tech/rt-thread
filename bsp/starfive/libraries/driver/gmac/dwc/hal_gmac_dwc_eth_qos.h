@@ -368,14 +368,12 @@ typedef struct gmac_eth_dev {
     //int rx_desc_idx;
     char rxbusy;
     char rxnext;
-    char busyrxdesc;
-    char unused;
-    struct rt_device *phydev;
+    unsigned short busyrxdesc;
 
     void *tx_dma_buf[EQOS_DESCRIPTORS_TX];
     void *rx_dma_buf[EQOS_DESCRIPTORS_RX];
-    eqos_desc_t *tx_dma_buf_noalign[EQOS_DESCRIPTORS_TX];
-    eqos_desc_t *rx_dma_buf_noalign[EQOS_DESCRIPTORS_RX];
+    void *tx_dma_buf_noalign[EQOS_DESCRIPTORS_TX];
+    void *rx_dma_buf_noalign[EQOS_DESCRIPTORS_RX];
 
     struct eqos_int int_summary;
     gmac_handle_t *handle;

@@ -87,6 +87,7 @@ typedef struct gmac_handle {
     struct gmac_ops *ops;
     void *base;
     void *priv;
+    unsigned long pcie_iobase;
     int id;
     char name[16];
 } gmac_handle_t;

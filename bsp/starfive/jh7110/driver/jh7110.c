@@ -527,13 +527,13 @@ void jh7110_driver_init(void)
 
     jh7110_env_init();
     hw_pin_init();
+#if defined(BSP_USING_PCIE)
+    rt_hw_pcie_init();
+#endif
 #if defined(BSP_USING_GMAC)
     rt_hw_gmac_init();
 #endif
 #if defined(BSP_USING_CAN)
     rt_hw_canfd_init();
-#endif
-#if defined(BSP_USING_PCIE)
-    rt_hw_pcie_init();
 #endif
 }

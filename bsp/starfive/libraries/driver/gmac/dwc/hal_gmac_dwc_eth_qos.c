@@ -241,7 +241,7 @@ static int eqos_mdio_read(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *da
 
     mdio_val = sys_readl(&eqos_dev->mac_regs->mdio_data);
     mdio_val &= EQOS_MAC_MDIO_DATA_GD_MASK;
-    *(rt_uint32_t *)data = mdio_val;
+    *(uint32_t *)data = mdio_val;
 
     return 0;
 }
@@ -326,7 +326,7 @@ static int eqos_send(void *priv, int length)
 	&eqos_dev->dma_regs->ch0_txdesc_tail_pointer);
 
     eqos_dev->tx_desc_idx++;
-    eqos_dev->tx_desc_idx %= EQOS_DESCRIPTORS_TX;
+    eqos_dev->tx_desc_idx &= (EQOS_DESCRIPTORS_TX - 1);
 
     return 0;
 }
@@ -342,12 +342,16 @@ static int eqos_recv(void *priv, void **packetp)
         roundup((unsigned long)rx_desc + EQOS_DESCRIPTOR_SIZE, ARCH_DMA_MINALIGN));
     if (rx_desc->des3 & EQOS_DESC3_OWN) {
         //hal_printf("RX packet not available %d\n", eqos_dev->rxbusy);
-        return -RT_ERROR;
+        return -1;
     }
     length = rx_desc->des3 & 0x7fff;
     if (!length) {
 	hal_printf("RX packet len 0 %d\n", eqos_dev->rxbusy);
-	return -RT_ERROR;
+	eqos_dev->rxbusy++;
+	eqos_dev->rxbusy &= (EQOS_DESCRIPTORS_RX - 1);
+	eqos_dev->rxnext++;
+	eqos_dev->rxnext &= (EQOS_DESCRIPTORS_RX - 1);
+	return -1;
     }
     rx_desc->des0 = 0;
     mb();
@@ -356,7 +360,7 @@ static int eqos_recv(void *priv, void **packetp)
     *packetp = eqos_dev->rx_dma_buf[eqos_dev->rxbusy];
 
     eqos_dev->rxbusy++;
-    eqos_dev->rxbusy %= EQOS_DESCRIPTORS_RX;
+    eqos_dev->rxbusy &= (EQOS_DESCRIPTORS_RX - 1);
     eqos_dev->busyrxdesc--;
     //printf("%s: *packetp=%p, length=%d\n", __func__, *packetp, length);
     // printf("CRC Err:%d  LT:%d\n", (rx_desc->des3&BIT(24) != 0), (rx_desc->des3>>16)&0x7);
@@ -382,7 +386,7 @@ static int eqos_free_pkt(void *priv, void *packet)
     if (packet != packet_expected) {
         hal_printf("Unexpected packet (expected %p)\n",
               packet_expected);
-        return -RT_ERROR;
+        return -1;
     }
 
     rx_desc = &(eqos_dev->rx_descs[eqos_dev->rxnext]);
@@ -404,7 +408,7 @@ static int eqos_free_pkt(void *priv, void *packet)
     sys_writel((unsigned long)rx_desc, &eqos_dev->dma_regs->ch0_rxdesc_tail_pointer);
 
     eqos_dev->rxnext++;
-    eqos_dev->rxnext %= EQOS_DESCRIPTORS_RX;
+    eqos_dev->rxnext &= (EQOS_DESCRIPTORS_RX - 1);
     eqos_dev->busyrxdesc++;
 
     return rx_next;
@@ -458,7 +462,7 @@ static int eqos_resources_malloc(eqos_eth_dev_t *eqos_dev)
     eqos_dev->descs_noalign = hal_malloc(EQOS_DESCRIPTORS_SIZE  + EQOS_DESCRIPTOR_ALIGN);//memalign(EQOS_DESCRIPTOR_ALIGN, EQOS_DESCRIPTORS_SIZE);
     if (!eqos_dev->descs_noalign) {
         hal_printf("%s: eqos_alloc_descs() failed\n", __func__);
-        ret = -RT_ENOMEM;
+        ret = -1;
         goto err;
     }
     eqos_dev->descs = (void *)ALIGN((unsigned long)eqos_dev->descs_noalign, EQOS_DESCRIPTOR_ALIGN);
@@ -469,7 +473,7 @@ static int eqos_resources_malloc(eqos_eth_dev_t *eqos_dev)
 	eqos_dev->tx_dma_buf_noalign[i] = hal_malloc(EQOS_MAX_PACKET_SIZE + EQOS_BUFFER_ALIGN);//memalign(EQOS_BUFFER_ALIGN, EQOS_MAX_PACKET_SIZE);
     	if (!eqos_dev->tx_dma_buf_noalign) {
 	    hal_printf("%s: memalign(tx_dma_buf) failed\n", __func__);
-            ret = -RT_ENOMEM;
+            ret = -1;
             goto err_free_descs;
         }
 	eqos_dev->tx_dma_buf[i] = (void *)ALIGN((unsigned long)eqos_dev->tx_dma_buf_noalign[i], EQOS_BUFFER_ALIGN);
@@ -479,7 +483,7 @@ static int eqos_resources_malloc(eqos_eth_dev_t *eqos_dev)
 	eqos_dev->rx_dma_buf_noalign[i] = hal_malloc(EQOS_RX_BUFFER_SIZE + EQOS_BUFFER_ALIGN);//memalign(EQOS_BUFFER_ALIGN, EQOS_MAX_PACKET_SIZE);
 	if (!eqos_dev->rx_dma_buf_noalign[i]) {
             hal_printf("%s: memalign(rx_dma_buf) failed\n", __func__);
-            ret = -RT_ENOMEM;
+            ret = -1;
             goto err_free_tx_dma_buf;
         }
 	eqos_dev->rx_dma_buf[i] = (void *)ALIGN((unsigned long)eqos_dev->rx_dma_buf_noalign[i], EQOS_BUFFER_ALIGN);
@@ -779,9 +783,9 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
 
     /* Set up descriptors */
 
-    memset(eqos_dev->descs, 0, EQOS_DESCRIPTORS_SIZE);
     for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
         struct eqos_desc *rx_desc = &(eqos_dev->rx_descs[i]);
+	memset(rx_desc, 0, EQOS_DESCRIPTORS_SIZE);
         rx_desc->des0 = (rt_uint32_t)(unsigned long)(eqos_dev->rx_dma_buf[i]);
         rx_desc->des3 |= EQOS_DESC3_OWN | EQOS_DESC3_BUF1V | EQOS_DESC3_IOC;
 
@@ -831,8 +835,6 @@ err:
 static gmac_handle_t* eqos_open(gmac_handle_t *gmac)
 {
     eqos_eth_dev_t *eqos_dev;
-    struct rt_phy_device *phy_dev;
-    struct rt_device *phy_rt_dev;
     int ret;
 
     /*
