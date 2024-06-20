@@ -3,7 +3,7 @@
 #include "board.h"
 #include "pci.h"
 
-#define printf hal_printf
+#define printf
 
 int pci_bus_read_config(const struct udevice *bus, pci_dev_t bdf, int offset,
 			unsigned long *valuep, enum pci_size_t size)
@@ -143,6 +143,23 @@ unsigned long pci_conv_size_to_32(unsigned long old, unsigned long value, unsign
         value = (old & ~mask) | ldata;
 
         return value;
+}
+
+void pci_set_master(struct udevice *dev, int enable)
+{
+	uint16_t old_cmd, cmd;
+
+	dm_pci_read_config16(dev, PCI_COMMAND, &old_cmd);
+	if (enable)
+		cmd = old_cmd | PCI_COMMAND_MASTER;
+	else
+		cmd = old_cmd & ~PCI_COMMAND_MASTER;
+	if (cmd != old_cmd) {
+		//pci_dbg(dev, "%s bus mastering\n",
+		//	enable ? "enabling" : "disabling");
+		dm_pci_write_config16(dev, PCI_COMMAND, cmd);
+	}
+	dev->msi_dev.is_busmaster = enable;
 }
 
 
@@ -383,15 +400,17 @@ int pci_bind_bus_devices(struct udevice *bus)
 		//printf(": find ret=%d\n", ret);
 
 		/* If nothing in the device tree, bind a device */
+#if 0
 		//if (ret == -ENODEV) 
 		{
+
 			struct pci_device_id find_id;
 			unsigned long val;
 
 			memset(&find_id, '\0', sizeof(find_id));
 			find_id.vendor = vendor;
 			find_id.device = device;
-			find_id.class = class;
+			//find_id.class = class;
 			if ((header_type & 0x7f) == PCI_HEADER_TYPE_NORMAL) {
 				pci_bus_read_config(bus, bdf,
 						    PCI_SUBSYSTEM_VENDOR_ID,
@@ -402,6 +421,7 @@ int pci_bind_bus_devices(struct udevice *bus)
 			//ret = pci_find_and_bind_driver(bus, &find_id, bdf,
 			//			       &dev);
 		}
+#endif
 		//if (ret == -EPERM)
 			//continue;
 		//else if (ret)
@@ -503,14 +523,10 @@ int pci_probe(struct udevice *bus)
 	int ret;
 
 	ret = pci_bind_bus_devices(bus);
-	//if (ret)
-		//return log_msg_ret("bind", ret);
 	if (!ret)
 		ret = pci_auto_config_devices(bus);
 
-	bus->msi_dev.dev = bus;
-	pcie_init_capabilities(&bus->msi_dev);
-
+	pcie_init_capabilities(bus);
 	return ret;
 }
 

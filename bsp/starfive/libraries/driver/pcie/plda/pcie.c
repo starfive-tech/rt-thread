@@ -136,7 +136,8 @@ static void plda_handle_msi(struct plda_pcie *pcie)
 		for (i = 0; i < 8; i++) {
 			if (reg_val & BIT(i)) {
 				sys_writel(BIT(i), pcie->bridge_base  + XR3PCI_ISTATUS_MSI);
-				pcie->msi[i].msi_handler(pcie->msi[i].arg);
+				if (pcie->msi[i].msi_handler)
+					pcie->msi[i].msi_handler(i, pcie->msi[i].arg);
 			}
 		}
 	}
@@ -165,15 +166,27 @@ static void plda_enable_int(struct plda_pcie *pcie)
 	sys_writel(reg_val, pcie->bridge_base + IMASK_LOCAL);
 }
 
-static void plda_register_msi(void *instance, void *arg, void *handler)
+static void plda_register_msi(void *instance, void *arg, void *handler, int irq)
 {
 	struct plda_pcie *pcie = instance;
-	int msi_index = pcie->allocate_irq_num;
+	int msi_index = irq;
 
 	pcie->msi[msi_index].arg = arg;
 	pcie->msi[msi_index].msi_handler = handler;
-	pcie->msi[msi_index].irqno = pcie->allocate_irq_num;
-	pcie->allocate_irq_num++;
+	pcie->msi[msi_index].irqno = irq;
+}
+
+static int plda_alloc_msi_irq_num(void *instance, int num)
+{
+	struct plda_pcie *pcie = instance;
+	int start_num = pcie->allocate_irq_num;
+
+	if (start_num + num > 8)
+		return -1;
+
+	pcie->allocate_irq_num += num;
+
+	return start_num;
 }
 
 static int pcie_irq_handle(void *priv)
@@ -293,6 +306,7 @@ static const struct dm_pci_ops starfive_pcie_ops = {
 	.write_config	= starfive_pcie_config_write,
 	.register_msi   = plda_register_msi,
 	.compose_msi    = plda_compose_msi_msg,
+	.alloc_msi_irq	= plda_alloc_msi_irq_num,
 };
 
 #if 0

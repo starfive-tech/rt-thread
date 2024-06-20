@@ -43,7 +43,6 @@ struct msi_desc {
 struct udevice;
 
 struct pci_msi_dev {
-	struct udevice *dev;
 	struct msi_desc desc[4];
 	void *msix_base;
 	uint8_t current_state;
@@ -62,6 +61,7 @@ struct pci_msi_dev {
 	uint32_t imm_ready:1;
 	uint32_t msi_enabled:1;
 	uint32_t msix_enabled:1;
+	uint32_t is_busmaster:1;
 };
 
 /* Message Signaled Interrupt registers */
@@ -111,8 +111,8 @@ static inline void *pci_msix_desc_addr(struct msi_desc *desc)
 }
 
 
-void pcie_init_capabilities(struct pci_msi_dev *dev);
-int pcie_alloc_irq_vectors(struct pci_msi_dev *dev, unsigned int min_vecs,
+void pcie_init_capabilities(struct udevice *udev);
+int pcie_alloc_irq_vectors(struct udevice *udev, unsigned int min_vecs,
 				   unsigned int max_vecs, unsigned int msi_irq, unsigned int flags);
 
 

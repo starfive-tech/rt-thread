@@ -604,8 +604,8 @@ typedef int pci_dev_t;
 struct pci_device_id {
 	unsigned int vendor, device;	/* Vendor and device ID or PCI_ANY_ID */
 	unsigned int subvendor, subdevice; /* Subsystem ID's or PCI_ANY_ID */
-	unsigned int class, class_mask;	/* (class,subclass,prog-if) triplet */
-	unsigned long driver_data;	/* Data private to the driver */
+	//unsigned int class, class_mask;	/* (class,subclass,prog-if) triplet */
+	//unsigned long driver_data;	/* Data private to the driver */
 };
 
 struct pci_controller;
@@ -918,8 +918,9 @@ struct dm_pci_ops {
 	int (*write_config)(struct udevice *bus, pci_dev_t bdf, unsigned int offset,
 			    unsigned long value, enum pci_size_t size);
 
-	void (*register_msi)(void *inst, void *, void *);
+	void (*register_msi)(void *inst, void *, void *, int);
 	void (*compose_msi)(void *, void *);
+	int (*alloc_msi_irq)(void *, int);
 };
 
 /* Get access to a PCI bus' operations */
@@ -1742,13 +1743,13 @@ struct pci_driver_entry {
 #define PCI_IRQ_AFFINITY	(1 << 3) /* Auto-assign affinity */
 
 struct udevice {
+    struct pci_msi_dev msi_dev;
     int seq;
     //int second_bus;
     int type;
     struct pci_child_plat pplat;
     struct pci_controller *hose;
     struct dm_pci_ops *ops;
-    struct pci_msi_dev msi_dev;
     int dev_num;
     void *priv;
 };
@@ -1765,6 +1766,7 @@ struct pci_bus_device {
     struct pci_region pci_mem;
     struct pci_region pci_io;
     struct pci_region pci_prefetch;
+    int dev_cnt;
 };
 
 static inline struct pci_controller *dev_get_uclass_priv(struct udevice *udev)
@@ -1798,6 +1800,13 @@ void dm_pciauto_prescan_setup_bridge(struct udevice *dev, int sub_bus);
 void dm_pciauto_postscan_setup_bridge(struct udevice *dev, int sub_bus);
 int dm_pciauto_config_device(struct udevice *dev);
 int pci_probe(struct udevice *bus);
+int register_msi_irq(void *arg, void (*handler)(int, void *arg), struct udevice *udev,
+				int irq_num);
+
+int alloc_msi_irq(struct udevice *udev, int irq_num);
+void pci_set_master(struct udevice *dev, int enable);
+
+struct udevice *get_match_pci_device(struct pci_device_id *dev_id);
 
 enum pci_pm_state {
 	PCI_D0 = 0,

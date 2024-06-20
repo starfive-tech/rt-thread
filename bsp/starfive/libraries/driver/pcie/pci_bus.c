@@ -23,7 +23,7 @@ int pci_scan_bus(struct pcie *pcie, void *pci_ops)
     bus_device[bus_dev_num].pci_mem.bus_start = pcie->cfg.mem32_base;
     bus_device[bus_dev_num].pci_mem.size = (1 << pcie->cfg.mem32_log);
     bus_device[bus_dev_num].pci_prefetch.bus_start = pcie->cfg.mem64_base;
-    bus_device[bus_dev_num].pci_prefetch.size = pcie->cfg.mem64_log;
+    bus_device[bus_dev_num].pci_prefetch.size = (1 << pcie->cfg.mem64_log);
 
     bus_device[bus_dev_num].hose.pci_mem = &bus_device[bus_dev_num].pci_mem;
     bus_device[bus_dev_num].hose.pci_prefetch = &bus_device[bus_dev_num].pci_prefetch;
@@ -46,6 +46,7 @@ int pci_scan_bus(struct pcie *pcie, void *pci_ops)
 	pci_device->dev.ops = ops;
 	pci_device->dev.priv = pcie->priv;
 	pci_probe(&pci_device->dev);
+	bus_device[bus_dev_num].dev_cnt++;
 	total_bus_num++;
     }
 
@@ -58,12 +59,39 @@ int pci_scan_bus(struct pcie *pcie, void *pci_ops)
     return ret;
 }
 
-int register_msi_irq(void *arg, int (*handler)(void *arg), int pci_num)
+int register_msi_irq(void *arg, void (*handler)(int, void *arg), struct udevice *udev,
+				int irq_num)
 {
-	struct pci_device *pci_device = &bus_device[pci_num].pci_dev[0];
-
-	pci_device->dev.ops->register_msi(pci_device->dev.priv, arg, handler);
+	udev->ops->register_msi(udev->priv, arg, handler, irq_num);
 
 	return 0;
+}
+
+int alloc_msi_irq(struct udevice *udev, int irq_num)
+{
+	return udev->ops->alloc_msi_irq(udev->priv, irq_num);
+}
+
+struct udevice *get_match_pci_device(struct pci_device_id *dev_id)
+{
+	struct pci_bus_device *bus_dev;
+	struct pci_device *pci;
+	int i, j;
+
+	if (!bus_dev_num)
+		return NULL;
+
+	for (i = 0; i < bus_dev_num; i++) {
+		bus_dev = &bus_device[i];
+		for (j = 0; j < bus_dev->dev_cnt; j++) {
+			pci = &bus_dev->pci_dev[j];
+			if ((dev_id->vendor == pci->dev.pplat.vendor) &&
+				(dev_id->device== pci->dev.pplat.device)) {
+				return &pci->dev;
+			}
+		}
+	}
+
+	return NULL;
 }
 

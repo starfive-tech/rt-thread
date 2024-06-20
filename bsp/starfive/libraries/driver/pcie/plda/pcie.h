@@ -96,7 +96,7 @@
 				 INT_PCIE_FETCH_ERROR | INT_PCIE_DISCARD_ERROR)
 
 struct plda_msi {
-     int (*msi_handler)(void *);
+     int (*msi_handler)(int irq, void *);
      void *arg;
      int irqno;
 };

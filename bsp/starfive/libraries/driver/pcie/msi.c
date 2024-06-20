@@ -10,7 +10,7 @@
 void pcie_intx(struct pci_msi_dev *pdev, int enable)
 {
 	uint16_t pci_command, new;
-	struct udevice *udev = pdev->dev;
+	struct udevice *udev = (void *)pdev;
 
 	dm_pci_read_config16(udev, PCI_COMMAND, &pci_command);
 
@@ -25,22 +25,20 @@ void pcie_intx(struct pci_msi_dev *pdev, int enable)
 
 void pcie_msix_vec_count(struct pci_msi_dev *dev)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	uint16_t control;
-
-	//if (!dev->msix_cap)
-		//return -EINVAL;
 
 	dm_pci_read_config16(udev, dev->msix_cap + PCI_MSIX_FLAGS, &control);
 	dev->msix_hwsize = ((control & PCI_MSIX_FLAGS_QSIZE) + 1);
 }
 
-static void msix_mask_all(void *base, int tsize)
+static void msix_mask_all(void *base, int tsize, int nvec)
 {
 	uint32_t ctrl = PCI_MSIX_ENTRY_CTRL_MASKBIT;
 	int i;
 
-	for (i = 0; i < tsize; i++, base += PCI_MSIX_ENTRY_SIZE)
+	base += nvec * PCI_MSIX_ENTRY_SIZE;
+	for (i = nvec; i < tsize; i++, base += PCI_MSIX_ENTRY_SIZE)
 		sys_writel(ctrl, base + PCI_MSIX_ENTRY_VECTOR_CTRL);
 }
 
@@ -61,28 +59,29 @@ void msix_prepare_msi_desc(struct pci_msi_dev *dev, struct msi_desc *desc)
 
 static int msix_setup_msi_descs(struct pci_msi_dev *dev, int nvec)
 {
-	int ret = 0, i;
+	int i;
 	struct msi_desc desc;
 
 	for (i = 0; i < nvec; i++) {
 		desc.msi_index = i;
 		msix_prepare_msi_desc(dev, &dev->desc[i]);
 	}
-	return ret;
+	return 0;
 }
 
 static inline void pcie_msix_write_vector_ctrl(struct msi_desc *desc, uint32_t ctrl)
 {
 	void *desc_addr = pci_msix_desc_addr(desc);
 
-	if (desc->pci.msi_attrib.can_mask)
+	if (desc->pci.msi_attrib.can_mask) {
 		sys_writel(ctrl, desc_addr + PCI_MSIX_ENTRY_VECTOR_CTRL);
+	}
 }
 
 static inline void pcie_write_msg_msi(struct pci_msi_dev *dev, struct msi_desc *desc,
 				     struct msi_msg *msg)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	int pos = dev->msi_cap;
 	uint16_t msgctl;
 
@@ -132,7 +131,7 @@ static inline void pcie_write_msg_msix(struct msi_desc *desc, struct msi_msg *ms
 
 static void pci_msix_clear_and_set_ctrl(struct pci_msi_dev *dev, uint16_t clear, uint16_t set)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	uint16_t ctrl;
 
 	dm_pci_read_config16(udev, dev->msix_cap + PCI_MSIX_FLAGS, &ctrl);
@@ -144,7 +143,7 @@ static void pci_msix_clear_and_set_ctrl(struct pci_msi_dev *dev, uint16_t clear,
 static void *msix_map_region(struct pci_msi_dev *dev,
 				     unsigned int nr_entries)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	uint32_t addr0, addr1, table_offset;
 	unsigned long flags;
 	//void *region;
@@ -157,43 +156,35 @@ static void *msix_map_region(struct pci_msi_dev *dev,
 	dm_pci_read_config32(udev, PCI_BASE_ADDRESS_0 + bir * 4, &addr0);
 	//dm_pci_read_config32(udev, PCI_BASE_ADDRESS_0 + bir * 4 + 4, &addr1);
 
-	return (void *)(unsigned long)addr0;
-#if 0
-	flags = pci_resource_flags(dev, bir);
-	if (!flags || (flags & IORESOURCE_UNSET))
-		return NULL;
-
-	table_offset &= PCI_MSIX_TABLE_OFFSET;
-	phys_addr = pci_resource_start(dev, bir) + table_offset;
-
-	pr_info("phy addr %x table offset %x", (u64)phys_addr, table_offset);
-	return ioremap(phys_addr, nr_entries * PCI_MSIX_ENTRY_SIZE);
-#endif
+	return (void *)(unsigned long)(addr0 & ~0xf);
 }
 
 static int pci_msi_setup_msi_irqs(struct pci_msi_dev *dev, int nvec) 
 {
+	struct udevice *udev = (void *)dev;
 	struct msi_desc *desc = &dev->desc[0];
 	int i;
 
 	for (i = 0; i < nvec; i++) {
 		desc->msg.data = i + dev->irq;
-		dev->dev->ops->compose_msi(dev->dev->priv, &desc->msg);
+		udev->ops->compose_msi(udev->priv, &desc->msg);
 		pcie_write_msg_msi(dev, desc, &desc->msg);
 	}
 }
 
 static int pci_msix_setup_msi_irqs(struct pci_msi_dev *dev, int nvec) 
 {
+	struct udevice *udev = (void *)dev;
 	struct msi_desc *desc;
 	int i;
 
 	for (i = 0; i < nvec; i++) {
 		desc = &dev->desc[i];
-		dev->dev->ops->compose_msi(dev->dev->priv, &desc->msg);
 		desc->msg.data = i + dev->irq;
+		udev->ops->compose_msi(udev->priv, &desc->msg);
 		pcie_write_msg_msix(desc, &desc->msg);
 	}
+	return 0;
 }
 
 static int msix_setup_interrupts(struct pci_msi_dev *dev, int nvec)
@@ -269,7 +260,7 @@ static int msix_cap_init(struct pci_msi_dev *dev, int nvec)
 	 * which takes the MSI-X mask bits into account even
 	 * when MSI-X is disabled, which prevents MSI delivery.
 	 */
-	msix_mask_all(dev->msix_base, tsize);
+	msix_mask_all(dev->msix_base, tsize, nvec);
 	pci_msix_clear_and_set_ctrl(dev, PCI_MSIX_FLAGS_MASKALL, 0);
 
 	return 0;
@@ -278,7 +269,7 @@ out_disable:
 	dev->msix_enabled = 0;
 	pci_msix_clear_and_set_ctrl(dev, PCI_MSIX_FLAGS_MASKALL | PCI_MSIX_FLAGS_ENABLE, 0);
 
-	return ret;
+	return -1;
 }
 
 int pcie_enable_msix_range(struct pci_msi_dev *dev, int minvec, int maxvec, int flags)
@@ -347,7 +338,7 @@ int pcie_enable_msix_range(struct pci_msi_dev *dev, int minvec, int maxvec, int 
 
 static void pci_msi_set_enable(struct pci_msi_dev *dev, int enable)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	uint16_t control;
 
 	dm_pci_read_config16(udev, dev->msi_cap + PCI_MSI_FLAGS, &control);
@@ -359,7 +350,7 @@ static void pci_msi_set_enable(struct pci_msi_dev *dev, int enable)
 
 static int msi_setup_msi_desc(struct pci_msi_dev *dev, int nvec)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	struct msi_desc *desc = &dev->desc[0];
 	uint16_t control;
 
@@ -460,7 +451,7 @@ fail:
 int pci_msi_vec_count(struct pci_msi_dev *dev)
 {
 	int ret;
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	uint16_t msgctl;
 
 	dm_pci_read_config16(udev, dev->msi_cap + PCI_MSI_FLAGS, &msgctl);
@@ -515,10 +506,11 @@ int pcie_enable_msi_range(struct pci_msi_dev *dev, int minvec, int maxvec)
 	}
 }
 
-int pcie_alloc_irq_vectors(struct pci_msi_dev *dev, unsigned int min_vecs,
+int pcie_alloc_irq_vectors(struct udevice *udev, unsigned int min_vecs,
 				   unsigned int max_vecs, unsigned int msi_irq, unsigned int flags)
 {
 	int nvecs;
+	struct pci_msi_dev *dev = &udev->msi_dev;
 
 	dev->irq = msi_irq;
 
@@ -553,7 +545,7 @@ int pcie_alloc_irq_vectors(struct pci_msi_dev *dev, unsigned int min_vecs,
 
 void pcie_msi_init(struct pci_msi_dev *dev)
 {
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 	uint16_t ctrl;
 
 	dev->msi_cap = dm_pci_find_capability(udev, PCI_CAP_ID_MSI);
@@ -574,7 +566,7 @@ void pcie_msi_init(struct pci_msi_dev *dev)
 void pcie_msix_init(struct pci_msi_dev *dev)
 {
 	uint16_t ctrl;
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 
 	dev->msix_cap = dm_pci_find_capability(udev, PCI_CAP_ID_MSIX);
 	if (!dev->msix_cap)
@@ -590,7 +582,7 @@ void pcie_msix_init(struct pci_msi_dev *dev)
 static void pci_pme_active(struct pci_msi_dev *dev, int enable)
 {
 	uint16_t pmcsr;
-	struct udevice *udev = dev->dev;
+	struct udevice *udev = (void *)dev;
 
 	if (!dev->pme_support)
 		return;
@@ -606,8 +598,8 @@ static void pci_pme_active(struct pci_msi_dev *dev, int enable)
 
 void pcie_pm_init(struct pci_msi_dev *dev)
 {
+	struct udevice *udev = (void *)dev;
 	int pm;
-	struct udevice *udev = dev->dev;
 	uint16_t status, pmcsr;
 	uint16_t pmc;
 
@@ -679,10 +671,12 @@ void pcie_pm_init(struct pci_msi_dev *dev)
 }
 
 
-void pcie_init_capabilities(struct pci_msi_dev *dev)
+void pcie_init_capabilities(struct udevice *dev)
 {
-	pcie_msi_init(dev);
-	pcie_msix_init(dev);
-	pcie_pm_init(dev);
+	struct pci_msi_dev *msi_dev = &dev->msi_dev;
+
+	pcie_msi_init(msi_dev);
+	pcie_msix_init(msi_dev);
+	pcie_pm_init(msi_dev);
 }
 
