@@ -66,21 +66,21 @@ static gmac_handle_t dw_gmac[] =
 {
 #if defined(BSP_USING_GMAC0)
 {
-	.name		 =  "gmac0",
+	.name		 =  "g0",
 	.id		 =  0,
 	.memp_rx_pool	 =  &memp_gmac0_rx,
 },
 #endif
 #if defined(BSP_USING_GMAC1)
 {
-	.name		 =  "gmac1",
+	.name		 =  "g1",
 	.id		 =  1,
 	.memp_rx_pool	 =  &memp_gmac1_rx,
 },
 #endif
 #if defined(BSP_USING_EXT_GMAC) /* pcie gmac */
 {
-	.name		 =  "gmac_ext",
+	.name		 =  "ge",
 	.id		 =  2,
 	.memp_rx_pool	 =  &memp_gmac_ext_rx,
 	.pcie_iobase	 = 0,
