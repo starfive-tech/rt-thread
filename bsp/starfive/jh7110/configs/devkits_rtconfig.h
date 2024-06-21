@@ -359,6 +359,13 @@
 #define BSP_USING_CAN
 #define BSP_USING_CAN0
 
+/* pcie Drivers Configuration */
+
+
+/* Ethernet Drivers Configuration */
+
+#define DWC_GMAC
+
 /* component Configuration */
 
 #define BSP_USING_RPMSG_LITE
