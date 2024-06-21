@@ -429,7 +429,7 @@ static int pcie_post_init(struct pcie *pcie)
     /* Check if the link is up or not */
     for (retries = 0; retries < LINK_WAIT_MAX_RETRIES; retries++) {
 	    if (starfive_pcie_link_up(pcie)) {
-		    hal_printf("port link up\n");
+		    hal_printf("pcie port link up\n");
 		    pcie->link_up = 1;
 		    return 0;
 	    }
