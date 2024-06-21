@@ -348,6 +348,7 @@
 
 #define BSP_USING_GMAC
 #define BSP_USING_GMAC1
+#define BSP_USING_EXT_GMAC
 #define BSP_USING_PCIE
 #define BSP_USING_PCIE1
 
@@ -358,6 +359,7 @@
 /* Ethernet Drivers Configuration */
 
 #define DWC_GMAC
+#define RTL_PCIE_GMAC
 
 /* component Configuration */
 
