@@ -333,6 +333,7 @@ int pcie_ltssm_state_get(struct generic_ecam_pcie *pcie)
 int pcie_init(struct pcie *pcie)
 {
     struct plda_pcie *plda = &plda_inst[pcie->index];
+    int ret;
 
     plda->pcie = pcie;
 
@@ -369,7 +370,12 @@ int pcie_init(struct pcie *pcie)
     pcie->irq_handle = pcie_irq_handle;
 
     if (pcie->link_up) {
-	plda->first_busno = pci_scan_bus(pcie, (void *)&starfive_pcie_ops);
+	ret = pci_scan_bus(pcie, (void *)&starfive_pcie_ops);
+	if (ret > 0) {
+	    plda->first_busno = ret;
+	} else {
+		pcie->link_up = 0;
+	}
     }
     return 0;
 }

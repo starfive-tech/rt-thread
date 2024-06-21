@@ -1762,7 +1762,7 @@ struct pci_device {
 struct pci_bus_device {
     struct udevice dev;
     struct pci_controller hose;
-    struct pci_device pci_dev[2];
+    struct pci_device *pci_dev[4];
     struct pci_region pci_mem;
     struct pci_region pci_io;
     struct pci_region pci_prefetch;
