@@ -254,7 +254,7 @@ struct ipms_canfd_priv {
 	uint32_t (*read_reg)(const struct ipms_canfd_priv *priv, enum canfd_device_reg reg);
 	void (*write_reg)(const struct ipms_canfd_priv *priv, enum canfd_device_reg reg, uint32_t val);
 	uint32_t tx_mode;
-	struct ipms_canfd_cfg *can_cfg;
+	struct canfd_cfg *can_cfg;
 };
 
 struct ipms_baud_rate
@@ -622,7 +622,7 @@ static int canfd_rx(struct ipms_canfd_priv *priv, struct canfd_frame *cf)
 	return 1;
 }
 
-int canfd_rx_poll(void *can_priv, void *data)
+static int canfd_rx_poll(void *can_priv, void *data)
 {
 	struct ipms_canfd_priv *priv = (void *)can_priv;
 	struct canfd_frame *cf = (void *)data;
@@ -683,7 +683,7 @@ static int set_canfd_xmit_mode(struct ipms_canfd_priv *priv)
 	return 0;
 }
 
-int canfd_driver_start_xmit(const void *data, void *ipms_priv, int canfd)
+static int canfd_driver_start_xmit(const void *data, void *ipms_priv, int canfd)
 {
 	struct ipms_canfd_priv *priv = (void *)ipms_priv;
 	struct canfd_frame *cf = (void *)data;
@@ -976,7 +976,7 @@ static void canfd_error_interrupt(struct ipms_canfd_priv *priv, unsigned char is
 	//CAN_DBG("Tecnt is 0x%02x", can_ioread8(priv->reg_base + CANFD_TECNT_OFFSET));
 }
 
-unsigned int canfd_interrupt(void *ipms_priv)
+static unsigned int canfd_interrupt(void *ipms_priv)
 {
 	unsigned char isr, eir;
 	unsigned char isr_handled = 0, eir_handled = 0;
@@ -1095,7 +1095,7 @@ static int  canfd_do_set_mode(struct net_device *ndev, enum can_mode mode)
 }
 #endif
 
-int ipms_canfd_init(struct ipms_canfd *ipms, int ctrl_mode)
+static int ipms_canfd_init(struct hal_canfd *ipms, int ctrl_mode)
 {
 	struct ipms_canfd_priv *priv;
 	int ret;
@@ -1143,4 +1143,15 @@ int ipms_canfd_init(struct ipms_canfd *ipms, int ctrl_mode)
 }
 
 
+struct hal_can_ops ipms_ops = {
+	.start_xmit = canfd_driver_start_xmit,
+	.rx_poll = canfd_rx_poll,
+	.can_isr = canfd_interrupt,
+	.canfd_init = ipms_canfd_init, 
+};
+
+void ipms_ops_init(struct hal_canfd *can)
+{
+	can->can_ops = &ipms_ops;
+}
 

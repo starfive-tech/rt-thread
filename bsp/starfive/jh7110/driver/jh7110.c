@@ -291,7 +291,7 @@ void gmac_plat_init(gmac_handle_t *gmac)
 #endif
 
 #if defined(BSP_USING_CAN)
-void can_plat_init(struct ipms_canfd *ipms)
+void can_plat_init(struct hal_canfd *ipms)
 {
     unsigned int root_rate = get_peri_root_rate();
     unsigned int div;

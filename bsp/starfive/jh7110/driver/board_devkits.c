@@ -100,7 +100,7 @@ void uart_set_pinctrl(int id)
     }
 }
 
-void can_set_board_config(struct ipms_canfd *ipms)
+void can_set_board_config(struct hal_canfd *ipms)
 {
     can_set_pinctrl(ipms->index);
     ipms->cfg.is_canfd = 0;

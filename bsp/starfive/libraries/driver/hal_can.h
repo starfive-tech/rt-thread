@@ -16,15 +16,26 @@
 #define CAN_RX_OVERFLOW 0x4
 #define CAN_ERROR 0x8
 
-struct ipms_canfd_cfg {
+struct canfd_cfg {
     char *name;
     int clk_freq;
     int is_canfd;
 };
 
-struct ipms_canfd {
+struct hal_canfd;
+
+struct hal_can_ops {
+    int (*configure)(void *can, struct can_configure *cfg);
+    int (*start_xmit)(const void *data, void *ipms_priv, int canfd);
+    int (*rx_poll)(void *can, void *buf);
+    unsigned int (*can_isr)(void *);
+    int (*canfd_init)(struct hal_canfd *, int);
+};
+
+struct hal_canfd {
     struct rt_can_device dev;
-    struct ipms_canfd_cfg cfg;
+    struct canfd_cfg cfg;
+    struct hal_can_ops *can_ops;
     void *base;
     int index;
     int irq;
@@ -44,7 +55,7 @@ struct ipms_canfd {
 #define CAN_CTRLMODE_FD_NON_ISO		0x80	/* CAN FD in non-ISO mode */
 #define CAN_CTRLMODE_CC_LEN8_DLC	0x100	/* Classic CAN DLC option */
 
-void can_plat_init(struct ipms_canfd *ipms);
+void can_plat_init(struct hal_canfd *ipms);
 int rt_hw_can_init(void);
-void can_set_board_config(struct ipms_canfd *ipms);
+void can_set_board_config(struct hal_canfd *ipms);
 #endif /* DRV_CAN_H__ */

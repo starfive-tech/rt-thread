@@ -1,14 +1,4 @@
 
-/*
- * Copyright (c) 2006-2023, RT-Thread Development Team
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Change Logs:
- * Date           Author            Notes
- * 2021-10-29     mazhiyuan         first version
- */
-
 //#if defined(BSP_USING_CAN)
 
 #include <rtthread.h>
@@ -57,12 +47,12 @@ enum
 };
 
 /* Private functions ------------------------------------------------------------*/
-static rt_err_t ipms_canfd_configure(struct rt_can_device *can, struct can_configure *cfg);
-static rt_err_t ipms_canfd_control(struct rt_can_device *can, int cmd, void *arg);
-static rt_ssize_t ipms_canfd_sendmsg(struct rt_can_device *can, const void *buf, rt_uint32_t boxno);
-static rt_ssize_t ipms_canfd_recvmsg(struct rt_can_device *can, void *buf, rt_uint32_t boxno);
+static rt_err_t canfd_configure(struct rt_can_device *can, struct can_configure *cfg);
+static rt_err_t canfd_control(struct rt_can_device *can, int cmd, void *arg);
+static rt_ssize_t canfd_sendmsg(struct rt_can_device *can, const void *buf, rt_uint32_t boxno);
+static rt_ssize_t canfd_recvmsg(struct rt_can_device *can, void *buf, rt_uint32_t boxno);
 
-static struct ipms_canfd ipms_cans[] =
+static struct hal_canfd cans_inst[] =
 {
 #if defined(BSP_USING_CAN0)
     {
@@ -81,60 +71,60 @@ static struct ipms_canfd ipms_cans[] =
 /* Public functions ------------------------------------------------------------*/
 
 /* Private variables ------------------------------------------------------------*/
-static const struct rt_can_ops ipms_canfd_ops =
+static const struct rt_can_ops canfd_ops =
 {
-    .configure = ipms_canfd_configure,
-    .control = ipms_canfd_control,
-    .sendmsg = ipms_canfd_sendmsg,
-    .recvmsg = ipms_canfd_recvmsg,
+    .configure = canfd_configure,
+    .control = canfd_control,
+    .sendmsg = canfd_sendmsg,
+    .recvmsg = canfd_recvmsg,
 };
 
 static const struct can_configure ipms_canfd_default_config = IPMS_CANFD_CONFIG_DEFAULT;
 
 /* Interrupt Handle Function  ----------------------------------------------------*/
 
-static void ipms_canfd_isr(int vector, void *param)
+static void canfd_isr(int vector, void *param)
 {
     /* Get base address of canfd register */
-    struct ipms_canfd *ipms = (struct ipms_canfd *)param;
+    struct hal_canfd *can = (struct hal_canfd *)param;
     rt_uint32_t status;
 
-    status = canfd_interrupt(ipms->priv);
+    status = can->can_ops->can_isr(can->priv);
 
     if (status & CAN_TX_DONE)
     {
-        if (ipms->int_flag & RT_DEVICE_FLAG_INT_TX)
+        if (can->int_flag & RT_DEVICE_FLAG_INT_TX)
         {
-            rt_hw_can_isr(&ipms->dev, RT_CAN_EVENT_TX_DONE);
+            rt_hw_can_isr(&can->dev, RT_CAN_EVENT_TX_DONE);
         }
     }
 
     if (status & CAN_RX_IND)
     {
-        if (ipms->int_flag & RT_DEVICE_FLAG_INT_RX)
+        if (can->int_flag & RT_DEVICE_FLAG_INT_RX)
         {
-            rt_hw_can_isr(&ipms->dev, RT_CAN_EVENT_RX_IND);
+            rt_hw_can_isr(&can->dev, RT_CAN_EVENT_RX_IND);
         }
     }
 
     if (status & CAN_RX_OVERFLOW)
     {
-        rt_hw_can_isr(&ipms->dev, RT_CAN_EVENT_RXOF_IND);
+        rt_hw_can_isr(&can->dev, RT_CAN_EVENT_RXOF_IND);
     }
 
     if (status & CAN_ERROR)
     {
-        rt_hw_can_isr(&ipms->dev, RT_CAN_EVENT_TX_FAIL);
+        rt_hw_can_isr(&can->dev, RT_CAN_EVENT_TX_FAIL);
     }
 }
 
-static void ipms_canfd_ie(struct ipms_canfd *ipms)
+static void ipms_canfd_ie(struct hal_canfd *ipms)
 {
 }
 
-static rt_err_t ipms_canfd_configure(struct rt_can_device *can, struct can_configure *cfg)
+static rt_err_t canfd_configure(struct rt_can_device *dev, struct can_configure *cfg)
 {
-    struct ipms_canfd *ipms  = (struct ipms_canfd *)can;
+    struct hal_canfd *can  = (struct hal_canfd *)dev;
     int ctrlmode = 0;
     int ret;
 
@@ -153,7 +143,7 @@ static rt_err_t ipms_canfd_configure(struct rt_can_device *can, struct can_confi
         return RT_ERROR;
     }
 
-    ret = ipms_canfd_init(ipms, ctrlmode);
+    ret = can->can_ops->canfd_init(can, ctrlmode);
 
     if (ret)
 	return -RT_ERROR;
@@ -163,20 +153,20 @@ static rt_err_t ipms_canfd_configure(struct rt_can_device *can, struct can_confi
    // return -(RT_ERROR);
 }
 
-static rt_err_t ipms_canfd_control(struct rt_can_device *can, int cmd, void *arg)
+static rt_err_t canfd_control(struct rt_can_device *dev, int cmd, void *arg)
 {
     unsigned long argval = (unsigned long)arg;
-    struct ipms_canfd *ipms = (struct ipms_canfd *)can;
+    struct hal_canfd *can = (struct hal_canfd *)dev;
 
     RT_ASSERT(can);
 
     switch (cmd)
     {
     case RT_DEVICE_CTRL_SET_INT:
-	ipms->int_flag |= argval;
+	can->int_flag |= argval;
 	break;
     case RT_DEVICE_CTRL_CLR_INT:
-	ipms->int_flag &= ~argval;
+	can->int_flag &= ~argval;
 	break;
     case RT_CAN_CMD_SET_MODE:
         if ((argval == RT_CAN_MODE_NORMAL) ||
@@ -184,10 +174,10 @@ static rt_err_t ipms_canfd_control(struct rt_can_device *can, int cmd, void *arg
                 (argval == RT_CAN_MODE_LOOPBACK))
                 //(argval == RT_CAN_MODE_LOOPBACKANLISTEN)
         {
-            if (argval != can->config.mode)
+            if (argval != dev->config.mode)
             {
-                can->config.mode = argval;
-                return ipms_canfd_configure(can, &can->config);
+                dev->config.mode = argval;
+                return canfd_configure(dev, &dev->config);
             }
         }
         else
@@ -208,10 +198,10 @@ static rt_err_t ipms_canfd_control(struct rt_can_device *can, int cmd, void *arg
                 (argval == CAN20kBaud) ||
                 (argval == CAN10kBaud))
         {
-            if (argval != can->config.baud_rate)
+            if (argval != dev->config.baud_rate)
             {
-                can->config.baud_rate = argval;
-		ipms->baudrate = argval;
+                dev->config.baud_rate = argval;
+		can->baudrate = argval;
                 //return ipms_canfd_configure(can, &can->config);
             }
         }
@@ -257,9 +247,9 @@ static rt_err_t ipms_canfd_control(struct rt_can_device *can, int cmd, void *arg
     return RT_EOK;
 }
 
-static rt_ssize_t ipms_canfd_sendmsg(struct rt_can_device *can, const void *buf, rt_uint32_t boxno)
+static rt_ssize_t canfd_sendmsg(struct rt_can_device *dev, const void *buf, rt_uint32_t boxno)
 {
-    struct ipms_canfd *ipms = (struct ipms_canfd *)can;
+    struct hal_canfd *can = (struct hal_canfd *)dev;
     struct rt_can_msg *pmsg;
     int ret;
 
@@ -270,16 +260,17 @@ static rt_ssize_t ipms_canfd_sendmsg(struct rt_can_device *can, const void *buf,
     //if (pmsg->len == sizeof(struct rt_can_msg))
 	//ret = canfd_driver_start_xmit(buf, ipms->priv, 1);
     //else
-	ret = canfd_driver_start_xmit(buf, ipms->priv, 0);
+    ret = can->can_ops->start_xmit(buf, can->priv, 0);
+	//ret = canfd_driver_start_xmit(buf, can->priv, 0);
     if (ret <  0)
 	return (rt_ssize_t)-RT_ERROR;
 
     return (rt_ssize_t)RT_EOK;
 }
 
-static rt_ssize_t ipms_canfd_recvmsg(struct rt_can_device *can, void *buf, rt_uint32_t boxno)
+static rt_ssize_t canfd_recvmsg(struct rt_can_device *dev, void *buf, rt_uint32_t boxno)
 {
-    struct ipms_canfd *ipms = (struct ipms_canfd *)can;
+    struct hal_canfd *can = (struct hal_canfd *)dev;
     int ret;
     //struct rt_can_msg *pmsg;
 
@@ -287,7 +278,7 @@ static rt_ssize_t ipms_canfd_recvmsg(struct rt_can_device *can, void *buf, rt_ui
     RT_ASSERT(buf);
 
     //pmsg = (struct rt_can_msg *) buf;
-    ret = canfd_rx_poll(ipms->priv, buf);
+    ret = can->can_ops->rx_poll(can->priv, buf);
 
     if (ret <  0)
 	return (rt_ssize_t)-RT_ERROR;
@@ -305,21 +296,22 @@ int rt_hw_canfd_init(void)
 
     for (i = (CANFD_START + 1); i < CANFD_CNT; i++)
     {
-        can_plat_init(&ipms_cans[i]);
-        ipms_cans[i].dev.config = ipms_canfd_default_config;
+        can_plat_init(&cans_inst[i]);
+        cans_inst[i].dev.config = ipms_canfd_default_config;
 
 #ifdef RT_CAN_USING_HDR
-        ipms_cans[i].dev.config.maxhdr = RT_CANMSG_BOX_SZ;
+        cans_inst[i].dev.config.maxhdr = RT_CANMSG_BOX_SZ;
 #endif
+	ipms_ops_init(&cans_inst[i]);
         /* Register can device */
-        ret = rt_hw_can_register(&ipms_cans[i].dev, ipms_cans[i].cfg.name, &ipms_canfd_ops, NULL);
+        ret = rt_hw_can_register(&cans_inst[i].dev, cans_inst[i].cfg.name, &canfd_ops, NULL);
         RT_ASSERT(ret == RT_EOK);
 
         /* Register ISR. */
-        rt_hw_interrupt_install(ipms_cans[i].irq, ipms_canfd_isr, (void *)&ipms_cans[i], ipms_cans[i].cfg.name);
+        rt_hw_interrupt_install(cans_inst[i].irq, canfd_isr, (void *)&cans_inst[i], cans_inst[i].cfg.name);
 
         /* Unmask interrupt. */
-        rt_hw_interrupt_umask(ipms_cans[i].irq);
+        rt_hw_interrupt_umask(cans_inst[i].irq);
     }
 
     return (int)ret;
