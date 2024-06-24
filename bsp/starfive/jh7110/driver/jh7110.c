@@ -21,9 +21,9 @@
 #include "hal_pcie.h"
 #endif
 
-static rt_uint64_t sys_crg_base;
-static rt_uint64_t sys_syscon_base;
-static rt_uint64_t aon_crg_base;
+unsigned long sys_crg_base;
+unsigned long sys_syscon_base;
+unsigned long aon_crg_base;
 unsigned long sys_iomux_base;
 unsigned long stg_crg_base;
 unsigned long stg_syscon_base;
@@ -39,12 +39,12 @@ unsigned int STG_LIN_ST_OFFSET[2] = {0x1b8, 0x368};
 #define CAN_DEAULT_RATE 40000000
 
 struct jh7110_pll_regvals {
-        rt_uint32_t dacpd;
-        rt_uint32_t dsmpd;
-        rt_uint32_t fbdiv;
-        rt_uint32_t frac;
-        rt_uint32_t postdiv1;
-        rt_uint32_t prediv;
+        uint32_t dacpd;
+        uint32_t dsmpd;
+        uint32_t fbdiv;
+        uint32_t frac;
+        uint32_t postdiv1;
+        uint32_t prediv;
 };
 
 struct jh7110_pll_info {
@@ -55,9 +55,9 @@ struct jh7110_pll_info {
                 unsigned int prediv;
         } offsets;
         struct {
-                rt_uint32_t dacpd;
-                rt_uint32_t dsmpd;
-                rt_uint32_t fbdiv;
+                uint32_t dacpd;
+                uint32_t dsmpd;
+                uint32_t fbdiv;
         } masks;
         struct {
                 char dacpd;
@@ -128,7 +128,7 @@ static void jh7110_syscon_init()
 static void jh7110_pll_regvals_get(const struct jh7110_pll_info *info,
                                    struct jh7110_pll_regvals *ret)
 {
-        rt_uint32_t val;
+        uint32_t val;
 
         val = sys_readl(sys_syscon_base + info->offsets.pd);
         ret->dacpd = (val & info->masks.dacpd) >> info->shifts.dacpd;
@@ -220,7 +220,7 @@ unsigned long sys_cur_time_ms(void)
 
 void sys_udelay(int us)
 {
-   rt_uint64_t us_cnt;
+   uint64_t us_cnt;
 
    us_cnt = CPUTIME_TIMER_FREQ / 1000000 * us;
    us_cnt = get_ticks() + us_cnt;
@@ -229,16 +229,11 @@ void sys_udelay(int us)
 
 void sys_mdelay(int ms)
 {
-   rt_uint64_t ms_cnt;
+   uint64_t ms_cnt;
 
    ms_cnt = CPUTIME_TIMER_FREQ / 1000 * ms;
    ms_cnt = get_ticks() + ms_cnt;
    while (get_ticks() < ms_cnt);
-}
-
-void sys_tick_sleep(unsigned int tick)
-{
-    rt_thread_delay(tick);
 }
 
 unsigned int sys_gmac_get_csr_clk(int id)
@@ -272,14 +267,14 @@ void gmac_plat_init(gmac_handle_t *gmac)
 #else
 	gmac->base = (void *)0x16030000;
 #endif
-	rt_memcpy(&gmac->gmac_config, &gmac_config[0], sizeof(struct gmac_config));
+	memcpy(&gmac->gmac_config, &gmac_config[0], sizeof(struct gmac_config));
     } else {
 #ifdef RT_USING_SMART
 	gmac->base = rt_ioremap(0x16040000, 0x4000);
 #else
 	gmac->base = (void *)0x16040000;
 #endif
-	rt_memcpy(&gmac->gmac_config, &gmac_config[1], sizeof(struct gmac_config));
+	memcpy(&gmac->gmac_config, &gmac_config[1], sizeof(struct gmac_config));
     }
     /* todo  get mac addr from share ram gmac 1*/
     gmac_set_board_config(gmac);
@@ -438,7 +433,7 @@ static int pcie_post_init(struct pcie *pcie)
 
     pcie->link_up = 0;
 
-    hal_printf("port link down\n");
+    hal_printf("pcie port link down\n");
 
     return 0;
 }
@@ -521,9 +516,7 @@ void pcie_plat_init(struct pcie *pcie)
 
 void jh7110_driver_init(void)
 {
-    while (!env_is_ready()) {
-	rt_schedule();
-    }
+    sys_wait_masteros_ready();
 
     jh7110_env_init();
     hw_pin_init();

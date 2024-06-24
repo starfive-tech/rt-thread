@@ -71,7 +71,7 @@ static struct phy_dts_config phy_dts[] = {
 
 void gmac_set_board_config(gmac_handle_t *gmac)
 {
-    rt_memcpy(&gmac->phy_config, &phy_dts[gmac->id], sizeof(struct phy_dts_config));
+    memcpy(&gmac->phy_config, &phy_dts[gmac->id], sizeof(struct phy_dts_config));
 }
 #endif
 /*

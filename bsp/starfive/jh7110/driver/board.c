@@ -83,6 +83,18 @@ void rt_plic_init(void)
 #endif
 }
 
+void sys_tick_sleep(unsigned int tick)
+{
+    rt_thread_delay(tick);
+}
+
+void sys_wait_masteros_ready(void)
+{
+    while (!env_is_ready()) {
+	rt_schedule();
+    }
+}
+
 void rt_hw_board_init(void)
 {
 #ifdef RT_USING_SMART

@@ -58,6 +58,8 @@ unsigned int sys_gmac_get_csr_clk(int id);
 void sys_gmac_invalidate_cache_range(unsigned long start, unsigned long end);
 void sys_gmac_flush_dcache_range(unsigned long start, unsigned long end);
 void sys_tick_sleep(unsigned int tick);
+void sys_wait_masteros_ready(void);
+int env_is_ready(void);
 
 #define ALIGN(addr, align) (((addr) + (align) - 1) & ~(align -1))
 #define BIT(bitnum) (1 << (bitnum % 32))
