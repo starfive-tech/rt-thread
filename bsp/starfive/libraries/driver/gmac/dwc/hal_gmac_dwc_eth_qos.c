@@ -465,6 +465,7 @@ static int eqos_resources_malloc(eqos_eth_dev_t *eqos_dev)
         ret = -1;
         goto err;
     }
+    memset(eqos_dev->descs_noalign, 0, EQOS_DESCRIPTORS_SIZE + EQOS_DESCRIPTOR_ALIGN);
     eqos_dev->descs = (void *)ALIGN((unsigned long)eqos_dev->descs_noalign, EQOS_DESCRIPTOR_ALIGN);
     eqos_dev->tx_descs = (eqos_desc_t *)eqos_dev->descs;
     eqos_dev->rx_descs = (eqos_dev->tx_descs + EQOS_DESCRIPTORS_TX);
@@ -785,7 +786,6 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
 
     for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
         struct eqos_desc *rx_desc = &(eqos_dev->rx_descs[i]);
-	memset(rx_desc, 0, EQOS_DESCRIPTORS_SIZE);
         rx_desc->des0 = (rt_uint32_t)(unsigned long)(eqos_dev->rx_dma_buf[i]);
         rx_desc->des3 |= EQOS_DESC3_OWN | EQOS_DESC3_BUF1V | EQOS_DESC3_IOC;
 
