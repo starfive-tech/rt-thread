@@ -39,6 +39,8 @@ objs.extend(SConscript(os.path.join(libraries_path_prefix, 'driver', 'SConscript
 
 objs.extend(SConscript(os.path.join(libraries_path_prefix, 'component', 'SConscript'), variant_dir='build/libraries/component', duplicate=0))
 
+objs.extend(SConscript(os.path.join(libraries_path_prefix, 'applications', 'SConscript'), variant_dir='build/libraries/applications', duplicate=0))
+
 stack_size = 4096
 
 stack_lds = open('link_stacksize.lds', 'w')

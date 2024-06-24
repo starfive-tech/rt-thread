@@ -1,0 +1,18 @@
+# RT-Thread building script for component
+
+from building import *
+
+cwd     = GetCurrentDir()
+src = Glob('*.c') + Glob('*.cpp')
+CPPPATH = [cwd]
+
+group = DefineGroup('applications', src, depend = [''], CPPPATH = CPPPATH)
+
+objs = [group]
+
+list = os.listdir(cwd)
+
+if GetDepend('USING_RPMSG_ECHO_TEST'):
+     objs = objs + SConscript(os.path.join('rpmsg_echo', 'SConscript'))
+
+Return('objs')

@@ -1,6 +1,4 @@
 /**
- * Copyright (C) 2013 Guangzhou Tronlong Electronic Technology Co., Ltd. - www.tronlong.com
- *
  * @file main.c
  *
  * @brief Example application main file.
@@ -9,9 +7,6 @@
  *
  * @author Tronlong <support@tronlong.com>
  *
- * @version V1.0
- *
- * @date 2023-8-10
  **/
 #include <rtthread.h>
 #include <rtdevice.h>
