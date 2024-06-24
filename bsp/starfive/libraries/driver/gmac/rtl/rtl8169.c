@@ -891,96 +891,42 @@ static int rtl_init(unsigned long dev_ioaddr,  struct rtl8169_private *tpc, cons
 	/* Print out some hardware info */
 	printf("%s: at ioaddr 0x%lx\n", name, ioaddr);
 #endif
+	return 0;
+}
 
-	/* if TBI is not endbled */
-#if 0
-	if (!(RTL_R8(PHYstatus) & TBI_Enable)) {
-		int val = mdio_read(PHY_AUTO_NEGO_REG);
+void rtl8169_check_link(void *param)
+{
+	gmac_handle_t *handle = param;
+	unsigned short link_status = 0;
+	unsigned short link_status_old = handle->phy_dev->link_register & LinkStatus;
+	u8 phy_status;
 
-		option = (board_idx >= MAX_UNITS) ? 0 : media[board_idx];
-		/* Force RTL8169 in 10/100/1000 Full/Half mode. */
-		if (option > 0) {
-#ifdef DEBUG_RTL8169
-			printf("%s: Force-mode Enabled.\n", name);
-#endif
-			Cap10_100 = 0, Cap1000 = 0;
-			switch (option) {
-			case _10_Half:
-				Cap10_100 = PHY_Cap_10_Half;
-				Cap1000 = PHY_Cap_Null;
-				break;
-			case _10_Full:
-				Cap10_100 = PHY_Cap_10_Full;
-				Cap1000 = PHY_Cap_Null;
-				break;
-			case _100_Half:
-				Cap10_100 = PHY_Cap_100_Half;
-				Cap1000 = PHY_Cap_Null;
-				break;
-			case _100_Full:
-				Cap10_100 = PHY_Cap_100_Full;
-				Cap1000 = PHY_Cap_Null;
-				break;
-			case _1000_Full:
-				Cap10_100 = PHY_Cap_Null;
-				Cap1000 = PHY_Cap_1000_Full;
-				break;
-			default:
-				break;
-			}
-			mdio_write(PHY_AUTO_NEGO_REG, Cap10_100 | (val & 0x1F));	/* leave PHY_AUTO_NEGO_REG bit4:0 unchanged */
-			mdio_write(PHY_1000_CTRL_REG, Cap1000);
-		} else {
-#ifdef DEBUG_RTL8169
-			printf("%s: Auto-negotiation Enabled.\n",
-			       name);
-#endif
-			/* enable 10/100 Full/Half Mode, leave PHY_AUTO_NEGO_REG bit4:0 unchanged */
-			mdio_write(PHY_AUTO_NEGO_REG,
-				   PHY_Cap_10_Half | PHY_Cap_10_Full |
-				   PHY_Cap_100_Half | PHY_Cap_100_Full |
-				   (val & 0x1F));
+	phy_status = RTL_R8(PHYstatus);
+	link_status = phy_status & LinkStatus;
+	if (link_status_old != link_status) {
+		if(link_status)
+			gmac_link_change(handle, 1);
+		else
+			gmac_link_change(handle, 0);
+	    handle->phy_dev->link_register = link_status;
+	}
+}
 
-			/* enable 1000 Full Mode */
-			mdio_write(PHY_1000_CTRL_REG, PHY_Cap_1000_Full);
+struct gmac_phy_ops rtl8169_phy_ops  = {
+    .check_link_status = rtl8169_check_link,
+};
 
-		}
+static int rtl8169_phy_init(gmac_handle_t *gmac)
+{
+	u8 phy_status = RTL_R8(PHYstatus);
+	struct gmac_dev *dev = gmac->phy_dev;
 
-		/* Enable auto-negotiation and restart auto-nigotiation */
-		mdio_write(PHY_CTRL_REG,
-			   PHY_Enable_Auto_Nego | PHY_Restart_Auto_Nego);
-		udelay(100);
+	dev->hal = gmac;
 
-		/* wait for auto-negotiation process */
-		for (i = 10000; i > 0; i--) {
-			/* check if auto-negotiation complete */
-			if (mdio_read(PHY_STAT_REG) & PHY_Auto_Nego_Comp) {
-				udelay(100);
-				option = RTL_R8(PHYstatus);
-				if (option & _1000bpsF) {
-#ifdef DEBUG_RTL8169
-					printf("%s: 1000Mbps Full-duplex operation.\n",
-					       name);
-#endif
-				} else {
-#ifdef DEBUG_RTL8169
-					printf("%s: %sMbps %s-duplex operation.\n",
-					       name,
-					       (option & _100bps) ? "100" :
-					       "10",
-					       (option & FullDup) ? "Full" :
-					       "Half");
-#endif
-				}
-				break;
-			} else {
-				udelay(100);
-			}
-		}		/* end for-loop to wait for auto-negotiation process */
-
-	} else
-#endif
-	{
+	dev->ops = &rtl8169_phy_ops;
+	if (!(phy_status & TBI_Enable)) {
+		/* always enable? */
+	} else {
 		sys_udelay(100);
 #ifdef DEBUG_RTL8169
 		printf
@@ -988,16 +934,19 @@ static int rtl_init(unsigned long dev_ioaddr,  struct rtl8169_private *tpc, cons
 		     name,
 		     (RTL_R32(TBICSR) & TBILinkOK) ? "OK" : "Failed");
 #endif
+		if (phy_status & LinkStatus) {
+			dev->link_status = 1;
+		}
+		dev->pcie_netcard = 1;
+		dev->link_register = phy_status;
 	}
-
-	return 0;
 }
-
 
 static gmac_handle_t* rtl8169_eth_open(gmac_handle_t *gmac)
 {
     struct udevice *udev = gmac->priv;
     struct rtl8169_private *priv;
+    struct gmac_dev *phy_dev;
     int ret, msi_irq;
     u32 iobase;
 
@@ -1010,9 +959,15 @@ static gmac_handle_t* rtl8169_eth_open(gmac_handle_t *gmac)
 	hal_printf("all msi irq failed!\n");
 	return NULL;
     }
+    phy_dev = (struct gmac_dev *)hal_malloc(sizeof(struct gmac_dev));
+    if (!phy_dev)
+	return NULL;
+
+    memset(phy_dev, 0, sizeof(struct gmac_dev));
 
     priv = (struct rtl8169_private *)hal_malloc(sizeof(struct rtl8169_private));
     if (!priv) {
+	hal_free(phy_dev);
 	hal_free(gmac);
         hal_printf("malloc mem failed!\n");
         return NULL;
@@ -1022,6 +977,7 @@ static gmac_handle_t* rtl8169_eth_open(gmac_handle_t *gmac)
 
     priv->udev = udev;
     gmac->priv = priv;
+    gmac->phy_dev = phy_dev;
 
     priv->iobase = gmac->pcie_iobase;
     priv->mmio_addr = (void *)gmac->pcie_iobase;
@@ -1033,6 +989,8 @@ static gmac_handle_t* rtl8169_eth_open(gmac_handle_t *gmac)
 	    hal_printf("failed to initialize card: %d\n", ret);
 	    return NULL;
     }
+
+    ret = rtl8169_phy_init(gmac);
 
     u32 val = RTL_R32(FuncEvent);
     printf("%s: FuncEvent/Misc (0xF0) = 0x%08X\n", __func__, val);
@@ -1085,14 +1043,16 @@ static int rtl8169_gmac_isr(void *priv)
 	if (status & RxOK)
 		ret |= INT_RX;
 
-	if (!ret) {
+	if (status & LinkChg) {
+		hal_printf("link status %x\n", RTL_R8(PHYstatus));
+		ret |= LINK_STATUS;
+	}
+
+	if (status & (RxOverflow | TxErr | RxErr)) {
 		ret = INT_TX_HARD_ERROR;
 		hal_printf("status %x\n", status);
 	}
-#if 0
-	if (status & LinkChg)
-		phy_mac_interrupt(tp->phydev);
-#endif
+
 	RTL_W16(IntrStatus, status);
 
 	return ret;
