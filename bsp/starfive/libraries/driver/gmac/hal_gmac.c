@@ -116,20 +116,23 @@ void dw_gmac_pkt_dump(const char *msg, const struct pbuf *p)
 
 void gmac_link_change(gmac_handle_t *dev,int up)
 {
-    if(up) {
-        rt_kprintf("link up\n");
+    if (up) {
+        rt_kprintf("gmac %s link up\n", dev->name);
 	if (dev->phy_dev->mode_changed) {
 	    dev->ops->set_speed_and_duplex(dev->priv);
 	    dev->phy_dev->mode_changed = 0;
 	}
 	eth_device_linkchange(&dev->eth, RT_TRUE);
 	dev->phy_dev->link_status = RT_TRUE;
-	plic_set_priority(dev->gmac_config.irq, 2);
-	rt_hw_plic_irq_enable(dev->gmac_config.irq);
+	if (!dev->phy_dev->pcie_netcard) {
+	    plic_set_priority(dev->gmac_config.irq, 2);
+	    rt_hw_plic_irq_enable(dev->gmac_config.irq);
+	}
     }
     else {
-        rt_kprintf("link down\n");
-	rt_hw_plic_irq_disable(dev->gmac_config.irq);
+        rt_kprintf("gmac %s link down\n", dev->name);
+	if (!dev->phy_dev->pcie_netcard)
+	    rt_hw_plic_irq_disable(dev->gmac_config.irq);
 	dev->phy_dev->link_status = RT_FALSE;
         eth_device_linkchange(&dev->eth, RT_FALSE);
     }
@@ -151,6 +154,24 @@ static void rt_hw_gmac_isr(int irq, void *arg)
 	eth_device_ready(&gmac->eth);
     }
     rt_hw_interrupt_enable(level);
+}
+
+void phy_link_detect(void *param)
+{
+    unsigned short bmsr = 0;
+    unsigned short link_status = 0;
+    unsigned short phy_val;
+    int ret = -1, i;
+
+    while(1)
+    {
+        for (i = (GMAC_START + 1); i < GMAC_CNT; i++) {
+	    gmac_handle_t *gmac = &dw_gmac[i];
+	    if (gmac->phy_dev && gmac->phy_dev->phy_detect_start)
+		gmac->phy_dev->ops->check_link_status(gmac);
+	}
+	sys_tick_sleep(RT_TICK_PER_SECOND);
+    }
 }
 
 static rt_err_t dw_gmac_init(rt_device_t device)
@@ -175,18 +196,8 @@ static rt_err_t dw_gmac_init(rt_device_t device)
     if (gmac->phy_dev) {
 	if (gmac->phy_dev->link_status)
 		gmac_link_change(gmac, 1);
-
-	link_detect = rt_thread_create("link_detect",
-			    phy_link_detect,
-			    (void *)gmac,
-			    4096,
-			    13,
-			    20);
-
-	if (link_detect != RT_NULL)
-		rt_thread_startup(link_detect);
-    } else
-	eth_device_linkchange(&gmac->eth, RT_TRUE);
+	gmac->phy_dev->phy_detect_start = 1;
+    }
 
     return 0;
 }
@@ -252,7 +263,7 @@ static rt_err_t dw_gmac_tx(rt_device_t dev, struct pbuf *p)
     void *dist;
     int copy_offset = 0, ret;
 
-    if (gmac->phy_dev && !gmac->phy_dev->link_status)
+    if (!gmac->phy_dev || !gmac->phy_dev->link_status)
 	return -RT_ERROR;
 
     ret = gmac->ops->check_descriptor(gmac->priv, &dist);
@@ -364,6 +375,16 @@ int rt_hw_gmac_init(void)
 
         RT_ASSERT(ret == RT_EOK);
     }
+
+    link_detect = rt_thread_create("link_detect",
+			phy_link_detect,
+			NULL,
+			4096,
+			13,
+			20);
+
+    if (link_detect != RT_NULL)
+	    rt_thread_startup(link_detect);
 
     return 0;
 }

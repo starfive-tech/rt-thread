@@ -49,17 +49,21 @@ struct gmac_dev {
     struct gmac_handle *hal;
     rt_uint32_t advertising;
     rt_uint32_t supported;
-    rt_uint16_t link_status;
+    rt_uint16_t link_register;
     int speed_mode;
     int speed;
     int duplex;
     char mode_changed:1;
     char disable_llp:1;
+    char link_status:1;
+    char phy_detect_start:1;
+    char pcie_netcard:1;
 };
 
 struct gmac_phy_ops {
     int (*init) (struct gmac_dev *);
     int (*deinit) (struct gmac_dev *);
+    void (*check_link_status)(void *);
 };
 
 struct gmac_phy_dev {
@@ -93,7 +97,6 @@ typedef struct gmac_handle {
     char name[16];
 } gmac_handle_t;
 
-
 struct gmac_ops {
     gmac_handle_t* (*open)(gmac_handle_t *gmac);
     int (*recv)(void *priv, void **packet);
@@ -107,7 +110,7 @@ struct gmac_ops {
 void gmac_plat_init(gmac_handle_t *gmac);
 void gmac_set_board_config(gmac_handle_t *gmac);
 int gmac_close(gmac_handle_t *gmac);
-void phy_link_detect(void *param);
+void generic_phy_link_detect(void *param);
 int gmac_phy_init(gmac_handle_t *handle);
 int genric_gmac_phy_init(gmac_handle_t * handle);
 void gmac_link_change(gmac_handle_t *dev,int up);
@@ -118,6 +121,7 @@ int rtl_gmac_ops_init(gmac_handle_t *handle);
 #define INT_TX_HARD_ERROR -1
 #define INT_TX 1
 #define INT_RX 2
+#define LINK_STATUS 3
 
 #define HAL_EQOS_DESC_NUM 256
 

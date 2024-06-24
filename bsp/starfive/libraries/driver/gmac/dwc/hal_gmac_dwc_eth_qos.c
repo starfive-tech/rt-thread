@@ -847,18 +847,7 @@ static gmac_handle_t* eqos_open(gmac_handle_t *gmac)
         hal_printf("malloc mem failed!\n");
         return NULL;
     }
-#if 0
-    phy_dev = (void *)hal_malloc(sizeof(struct rt_phy_device));
-    if (!phy_dev) {
-        return NULL;
-    }
-    ret = rt_hw_phy_register(phy_dev, "yt8531_phy");
-    if (ret) {
-    	hal_free(gmac);
-        return NULL;
-    }
-    phy_rt_dev = &phy_dev->parent;
-#endif
+
     //rt_memset(gmac, 0, sizeof(gmac_handle_t));
     memset(eqos_dev, 0, sizeof(eqos_eth_dev_t));
 

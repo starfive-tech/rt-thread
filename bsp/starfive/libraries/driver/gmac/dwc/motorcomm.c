@@ -452,8 +452,9 @@ static struct gmac_phy_dev phy_dev[] = {
 	.mask = MOTORCOMM_8531_PHY_ID_MASK,
 	.name  = "yt8531",
 	.ops = {
-	    .init = yt8531_dev_init,
-	.deinit = yt8531_dev_deinit,
+	   .init = yt8531_dev_init,
+	   .deinit = yt8531_dev_deinit,
+	   .check_link_status = generic_phy_link_detect,
 	},
     }
 };

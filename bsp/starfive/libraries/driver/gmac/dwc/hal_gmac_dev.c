@@ -256,16 +256,15 @@ int gmac_dev_genphy_reset(struct gmac_dev *dev)
     return 0;
 }
 
-void phy_link_detect(void *param)
+void generic_phy_link_detect(void *param)
 {
     gmac_handle_t *handle = param;
     unsigned short bmsr = 0;
     unsigned short link_status = 0;
-    unsigned short link_status_old = handle->phy_dev->link_status ? BMSR_LSTATUS: 0;
+    unsigned short link_status_old = handle->phy_dev->link_register & BMSR_LSTATUS;
     unsigned short phy_val;
     int ret = -1;
 
-    while(1)
     {
         ret = gmac_mdio_read(handle, MII_BMSR, &bmsr);
         link_status = bmsr & BMSR_LSTATUS;
@@ -275,21 +274,12 @@ void phy_link_detect(void *param)
             {
                 ret = gmac_phy_init(handle);
                 if(ret == 0)
-                {
                     gmac_link_change(handle, 1);
-                }
             }
             else
-            {
-                if(link_status_old != link_status)
-                {
                     gmac_link_change(handle, 0);
-                }
-            }
-
         }
-        link_status_old = link_status;
-	sys_tick_sleep(RT_TICK_PER_SECOND);
+        handle->phy_dev->link_register = link_status;
     }
 
 }
@@ -323,6 +313,7 @@ static int gmac_phy_preinit(struct gmac_dev *dev)
 	dev->speed = handle->gmac_config.speed;
 	dev->duplex = handle->gmac_config.duplex;
     }
+    handle->phy_dev->link_register = bmsr;
 
     return 0;
 }
