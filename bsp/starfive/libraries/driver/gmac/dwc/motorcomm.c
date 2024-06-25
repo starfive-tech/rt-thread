@@ -2,8 +2,8 @@
 #include <rtthread.h>
 #include "board.h"
 #include "hal_gmac.h"
-#include "hal_gmac_dwc_eth_qos.h"
-#include "hal_gmac_dev.h"
+#include "gmac_dwc_eth_qos.h"
+#include "gmac_phy_dev.h"
 #include "motorcomm.h"
 
 //#define MOTORCOMM_PHY_ID_MASK    0x00000fff

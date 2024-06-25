@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  * @copyright Copyright (c) 2020 StarFive Technology Co.,Ltd.
- * @file hal_gmac_dwc_eth_qos.h
+ * @file gmac_dwc_eth_qos.h
  * @author StarFive FW Team
  * @brief
  ******************************************************************************

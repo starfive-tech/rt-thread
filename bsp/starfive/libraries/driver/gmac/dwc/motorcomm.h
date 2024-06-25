@@ -18,7 +18,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include "hal_gmac_dev.h"
+#include "gmac_phy_dev.h"
 
 typedef enum {
     YT8512_MODE_DEFAULT = 0,

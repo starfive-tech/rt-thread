@@ -3,7 +3,7 @@
 
 #include "board.h"
 #include "hal_gmac.h"
-#include "hal_gmac_dwc_eth_qos.h"
+#include "gmac_dwc_eth_qos.h"
 #include "motorcomm.h"
 #include <riscv_io.h>
 #include <io.h>

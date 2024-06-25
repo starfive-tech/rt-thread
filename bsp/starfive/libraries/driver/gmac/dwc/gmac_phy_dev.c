@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  * @copyright Copyright (c) 2020 StarFive Technology Co.,Ltd.
- * @file hal_gmac_dev.c
+ * @file gmac_phy_dev.c
  * @author StarFive FW Team
  * @brief
  ******************************************************************************
@@ -10,8 +10,8 @@
 #include "board.h"
 #include "hal_gmac.h"
 
-#include "hal_gmac_dev.h"
-#include "hal_gmac_dwc_eth_qos.h"
+#include "gmac_phy_dev.h"
+#include "gmac_dwc_eth_qos.h"
 
 int gmac_dev_genphy_config_aneg(struct gmac_dev *dev)
 {

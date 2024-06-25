@@ -2,7 +2,7 @@
  ******************************************************************************
  * @copyright Copyright (c) 2020 StarFive Technology Co.,Ltd.
  *
- * @file hal_gmac_dev.h
+ * @file gmac_phy_dev.h
  * @author StarFive FW Team
  * @brief
  ******************************************************************************
