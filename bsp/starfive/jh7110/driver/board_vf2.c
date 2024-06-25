@@ -10,7 +10,7 @@
 #include "hal_gmac.h"
 #endif
 
-static struct uart_config uart_config[] = {
+static struct uart_8250_data uart_config[] = {
 #ifdef BSP_USING_DEVKITS
     {
         .hw_base = 0x10010000,
@@ -82,7 +82,7 @@ int get_uart_config_num()
 	return sizeof(uart_config)/sizeof(uart_config[0]);
 }
 
-struct uart_config *get_uart_config(int i)
+struct uart_8250_data *get_uart_config(int i)
 {
 	return &uart_config[i];
 }

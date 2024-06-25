@@ -1,11 +1,3 @@
-/*
- * Copyright (c) 2006-2020, RT-Thread Development Team
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Change Logs:
- * Date           Author       Notes
- */
 
 #include <rthw.h>
 #include <rtdevice.h>
@@ -15,12 +7,50 @@
 #include "board.h"
 #include "drv_uart.h"
 
-#include <stdio.h>
-#include "sbi.h"
+/**
+ * uart ns16550a
+ * http://byterunner.com/16550.html
+ */
 
-static rt_uint32_t get_reg(struct uart_config *config, rt_uint32_t num)
+/* TRANSMIT AND RECEIVE HOLDING REGISTER */
+#define UART_RHR 0
+#define UART_THR 0
+#define UART_DLL 0	/* Out: Divisor Latch Low */
+
+/* INTERRUPT ENABLE REGISTER */
+#define UART_IER 1
+#define UART_IER_RX_ENABLE (1 << 0)
+#define UART_IER_TX_ENABLE (1 << 1)
+#define UART_DLH 1	/* Out: Divisor Latch High */
+
+/* FIFO CONTROL REGISTER */
+#define UART_FCR 2
+#define UART_FCR_FIFO_ENABLE (1 << 0)
+#define UART_FCR_FIFO_CLEAR (3 << 1)
+
+/* INTERRUPT STATUS REGISTER */
+#define UART_ISR 2
+
+/* LINE CONTROL REGISTER */
+#define UART_LCR 3
+#define UART_LCR_EIGHT_BITS (3 << 0)
+// special mode to set baud rate
+#define UART_LCR_BAUD_LATCH (1 << 7)
+
+#define UART_MCR 4
+/* LINE STATUS REGISTER */
+#define UART_LSR 5
+// input is waiting to be read from RHR
+#define UART_LSR_RX_READY (1 << 0)
+// THR can accept another character to send
+#define UART_LSR_TX_IDLE (1 << 5)
+
+#define UART_SCR 7
+#define UART_DEFAULT_BAUDRATE 115200
+
+static uint32_t get_reg(struct uart_8250_data *config, uint32_t num)
 {
-	rt_uint32_t offset = num << config->uart8250_reg_shift;
+	uint32_t offset = num << config->uart8250_reg_shift;
 
 	if (config->uart8250_reg_width == 1)
 		return sys_readb(config->remap_base + offset);
@@ -30,9 +60,9 @@ static rt_uint32_t get_reg(struct uart_config *config, rt_uint32_t num)
 		return sys_readl(config->remap_base + offset);
 }
 
-static void set_reg(struct uart_config *config, rt_uint32_t num, rt_uint32_t val)
+static void set_reg(struct uart_8250_data *config, uint32_t num, uint32_t val)
 {
-	rt_uint32_t offset = num << config->uart8250_reg_shift;
+	uint32_t offset = num << config->uart8250_reg_shift;
 
 	if (config->uart8250_reg_width == 1)
 		sys_writeb(val, config->remap_base + offset);
@@ -42,8 +72,57 @@ static void set_reg(struct uart_config *config, rt_uint32_t num, rt_uint32_t val
 		sys_writel(val, config->remap_base + offset);
 }
 
-void uart_init(struct uart_config *config)
+static int uart_8250_control(void *priv, int cmd)
 {
+    struct uart_8250_data *config = (void *)priv;
+    uint8_t value;
+
+    switch (cmd)
+    {
+    case UART_CLR_INT:
+        value = get_reg(config, UART_IER);
+        set_reg(config, UART_IER, value & ~UART_IER_RX_ENABLE);
+        break;
+
+    case UART_SET_INIT:
+        value = get_reg(config, UART_IER);
+        set_reg(config, UART_IER, value | UART_IER_RX_ENABLE);
+        break;
+    }
+
+    return 0;
+}
+
+static int uart_8250_putc(void *priv, char c)
+{
+    struct uart_8250_data *config = (void *)priv;
+    // wait for Transmit Holding Empty to be set in LSR.
+    while((get_reg(config, UART_LSR) & UART_LSR_TX_IDLE) == 0)
+        ;
+    set_reg(config, UART_THR, c);
+
+    return (1);
+}
+
+static int uart_8250_getc(void *priv)
+{
+    struct uart_8250_data *config = (void *)priv;
+
+    volatile uint32_t lsr;
+    int ch = -1;
+
+    lsr = get_reg(config, UART_LSR);
+
+    if (lsr & UART_LSR_RX_READY)
+    {
+        ch = get_reg(config, UART_RHR);
+    }
+    return ch;
+}
+
+void uart_8250_configure(void *priv)
+{
+    struct uart_8250_data *config = (void *)priv;
     int bdiv;
 
     bdiv = (config->uart8250_in_freq + 8 * config->uart8250_baudrate) /
@@ -53,7 +132,7 @@ void uart_init(struct uart_config *config)
     set_reg(config, UART_IER, 0x00);
     /* Enable DLAB */
     set_reg(config, UART_LCR, 0x80);
-    
+
     if (bdiv) {
 	    /* Set divisor low byte */
 	    set_reg(config, UART_DLL, bdiv & 0xff);
@@ -77,148 +156,15 @@ void uart_init(struct uart_config *config)
     return;
 }
 
-static rt_err_t _uart_configure(struct rt_serial_device *serial, struct serial_configure *cfg)
-{
-    struct uart_config *config
-        = rt_container_of(serial, struct uart_config, serial);
+struct uart_ops uart_8250_ops = {
+    .configure =  uart_8250_configure,
+    .control =  uart_8250_control,
+    .getc    = uart_8250_getc,
+    .putc    = uart_8250_putc,
+};
 
-    uart_init(config);
-    return (RT_EOK);
+void uart_8250_set_ops(struct uart_config *config)
+{
+     config->ops = &uart_8250_ops;
 }
 
-static rt_err_t _uart_control(struct rt_serial_device *serial, int cmd, void *arg)
-{
-   struct uart_config *config
-	    = rt_container_of(serial, struct uart_config, serial);
-
-    switch (cmd)
-    {
-    case RT_DEVICE_CTRL_CLR_INT:
-        if ((size_t)arg == RT_DEVICE_FLAG_INT_RX)
-        {
-            rt_uint8_t value = get_reg(config, UART_IER);
-            set_reg(config, UART_IER, value & ~UART_IER_RX_ENABLE);
-        }
-        break;
-
-    case RT_DEVICE_CTRL_SET_INT:
-        if ((size_t)arg == RT_DEVICE_FLAG_INT_RX)
-        {
-            rt_uint8_t value = get_reg(config, UART_IER);
-            set_reg(config, UART_IER, value | UART_IER_RX_ENABLE);
-        }
-        break;
-    }
-
-    return (RT_EOK);
-}
-
-static int _uart_putc(struct rt_serial_device *serial, char c)
-{
-    struct uart_config *config
-	= rt_container_of(serial, struct uart_config, serial);
-
-    // wait for Transmit Holding Empty to be set in LSR.
-    while((get_reg(config, UART_LSR) & UART_LSR_TX_IDLE) == 0)
-        ;
-    set_reg(config, UART_THR, c);
-
-    return (1);
-}
-
-static int _uart_getc(struct rt_serial_device *serial)
-{
-    struct uart_config *config
-        = rt_container_of(serial, struct uart_config, serial);
-    volatile rt_uint32_t lsr;
-    int ch = -1;
-
-    lsr = get_reg(config, UART_LSR);
-
-    if (lsr & UART_LSR_RX_READY)
-    {
-        ch = get_reg(config, UART_RHR);
-    }
-    return ch;
-}
-
-const struct rt_uart_ops _uart_ops = {
-    _uart_configure,
-    _uart_control,
-    _uart_putc,
-    _uart_getc,
-    // TODO: add DMA support
-    RT_NULL};
-
-void rt_hw_uart_isr(int irqno, void *param)
-{
-    rt_ubase_t level = rt_hw_interrupt_disable();
-
-    struct rt_serial_device *serial = (struct rt_serial_device *)param;
-
-    rt_hw_serial_isr(serial, RT_SERIAL_EVENT_RX_IND);
-
-    rt_hw_interrupt_enable(level);
-}
-
-static void rt_register_uart(struct uart_config *uart_config,
-		const char *console_name)
-{
-    struct rt_serial_device *serial;
-    struct serial_configure config = RT_SERIAL_CONFIG_DEFAULT;
-
-#ifdef RT_USING_SMART
-    uart_config->remap_base = rt_ioremap(uart_config->hw_base, 4096);
-#endif
-    serial = &uart_config->serial;
-    serial->ops = &_uart_ops;
-    serial->config = config;
-    serial->config.baud_rate = uart_config->uart8250_baudrate;
-    rt_hw_serial_register(serial,
-			console_name,
-			RT_DEVICE_FLAG_STREAM | RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX,
-			uart_config);
-    rt_hw_interrupt_install(uart_config->irqno, rt_hw_uart_isr, uart_config, console_name);
-    rt_hw_interrupt_umask(uart_config->irqno);
-}
-
-int rt_hw_uart_init(void)
-{
-    char console_name[] = "uart0";
-    struct uart_config *uart_config;
-    int i;
-
-    for (i = 0; i < get_uart_config_num(); i++)
-    {
-        uart_config = get_uart_config(i);
-        if (uart_config->control_uart)
-	    continue;
-	uart_config_fixup(i);
-	console_name[4] = uart_config->index + '0';
-	rt_register_uart(uart_config, console_name);
-    }
-    return 0;
-}
-
-int rt_control_uart_init(void)
-{
-    struct uart_config *uart_config;
-    int i;
-
-    for (i = 0; i < get_uart_config_num(); i++)
-    {
-        uart_config = get_uart_config(i);
-	if (uart_config->control_uart) {
-	    uart_config_fixup(i);
-	    rt_register_uart(uart_config, RT_CONSOLE_DEVICE_NAME);
-	    break;
-	}
-    }
-
-    return 0;
-}
-
-/* WEAK for SDK 0.5.6 */
-rt_weak void uart_debug_init(int uart_channel)
-{
-}

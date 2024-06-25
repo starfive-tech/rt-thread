@@ -343,7 +343,7 @@ void *get_ipi_handler()
 
 static void jh7110_uart_init()
 {
-    struct uart_config *conf;
+    struct uart_8250_data *conf;
     int i;
 
     /* assert uart 0 as linux uart */
@@ -363,7 +363,7 @@ static void jh7110_uart_init()
 
 void uart_config_fixup(int id)
 {
-    struct uart_config *conf;
+    struct uart_8250_data *conf;
     int root_rate;
     int div;
 
