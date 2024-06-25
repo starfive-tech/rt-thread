@@ -46,7 +46,11 @@ static struct phy_dts_config phy_dts[] = {
 	.rgmii_sw_dr = 0x3,
 	.rgmii_sw_dr_rxc = 0x6,
 	.tx_delay_sel_fe = 5,
+#ifdef BSP_USING_DEVKITS
+	.tx_delay_sel = 0xb,
+#else
 	.tx_delay_sel = 0xa,
+#endif
 	.rxc_dly_en = 0,
 	.rx_delay_sel = 0xa,
 	.tx_inverted_10 = 0x1,
@@ -57,7 +61,11 @@ static struct phy_dts_config phy_dts[] = {
     {
 	.rgmii_sw_dr_2 = 0x0,
 	.rgmii_sw_dr = 0x3,
+#ifdef BSP_USING_DEVKITS
+	.rgmii_sw_dr_rxc = 0x7,
+#else
 	.rgmii_sw_dr_rxc = 0x6,
+#endif
 	.tx_delay_sel_fe = 5,
 	.tx_delay_sel = 0x0,
 	.rxc_dly_en = 0,
