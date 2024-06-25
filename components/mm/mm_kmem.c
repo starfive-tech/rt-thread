@@ -19,7 +19,11 @@
 
 static void list_kmem(void)
 {
+#ifndef RT_USING_SMART
+    LOG_W("Do NOT support virtual mem\n");
+#else
     rt_aspace_print_all(&rt_kernel_space);
+#endif
 }
 MSH_CMD_EXPORT(list_kmem, List varea in kernel virtual memory space);
 
