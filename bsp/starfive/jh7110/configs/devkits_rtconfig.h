@@ -366,6 +366,10 @@
 
 #define DWC_GMAC
 
+/* CAN Drivers Configuration */
+
+#define CAST_CAN
+
 /* component Configuration */
 
 #define BSP_USING_RPMSG_LITE

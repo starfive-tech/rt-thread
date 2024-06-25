@@ -1215,6 +1215,11 @@ CONFIG_DWC_GMAC=y
 # CONFIG_RTL_PCIE_GMAC is not set
 
 #
+# CAN Drivers Configuration
+#
+CONFIG_CAST_CAN=y
+
+#
 # component Configuration
 #
 CONFIG_BSP_USING_RPMSG_LITE=y

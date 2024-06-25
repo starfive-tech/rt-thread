@@ -11,7 +11,7 @@
 #include "board.h"
 #include <riscv_io.h>
 #include <io.h>
-#include "hal_ipms_canfd.h"
+#include "ipms_canfd.h"
 
 #define DRIVER_NAME "ipms_canfd"
 

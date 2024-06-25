@@ -6,7 +6,6 @@
 
 //#include <drivers/can.h>
 #include "hal_can.h"
-#include "hal_ipms_canfd.h"
 
 #if 0
 #define LOG_TAG    "drv.canfd"

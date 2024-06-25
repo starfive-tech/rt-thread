@@ -1,0 +1,9 @@
+menu "CAN Drivers Configuration"
+
+config CAST_CAN
+    bool "Enable ipms cast can driver"
+    default n
+    select BSP_USING_CAN
+
+endmenu
+

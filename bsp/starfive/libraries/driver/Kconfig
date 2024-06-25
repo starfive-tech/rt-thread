@@ -52,6 +52,7 @@ config BSP_USING_SPI
 
 source "../libraries/driver/pcie/Kconfig"
 source "../libraries/driver/gmac/Kconfig"
+source "../libraries/driver/can/Kconfig"
 
 endmenu
 

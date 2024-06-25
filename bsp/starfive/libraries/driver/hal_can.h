@@ -58,4 +58,5 @@ struct hal_canfd {
 void can_plat_init(struct hal_canfd *ipms);
 int rt_hw_can_init(void);
 void can_set_board_config(struct hal_canfd *ipms);
+void ipms_ops_init(struct hal_canfd *can);
 #endif /* DRV_CAN_H__ */
