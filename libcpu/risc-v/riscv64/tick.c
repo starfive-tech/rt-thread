@@ -31,10 +31,13 @@ uint64_t get_ticks()
 
 int tick_isr(void)
 {
-    // uint64_t core_id = current_coreid();
-    // clint->mtimecmp[core_id] += tick_cycles;
-    rt_tick_increase();
-    sbi_set_timer(get_ticks() + tick_cycles);
+    uint64_t tick = get_ticks();
+
+    do { /* should not overflow */
+	tick_cycles += CPUTIME_TIMER_FREQ / RT_TICK_PER_SECOND;
+	rt_tick_increase();
+    } while (tick_cycles <= tick);
+    sbi_set_timer(tick_cycles);
 
     return 0;
 }
@@ -49,9 +52,9 @@ int rt_hw_tick_init(void)
     clear_csr(sie, SIP_STIP);
 
     /* calculate the tick cycles */
-    tick_cycles = CPUTIME_TIMER_FREQ / RT_TICK_PER_SECOND;
+    tick_cycles = get_ticks() + CPUTIME_TIMER_FREQ / RT_TICK_PER_SECOND;
     /* Set timer */
-    sbi_set_timer(get_ticks() + tick_cycles);
+    sbi_set_timer(tick_cycles);
 
 #ifdef RT_USING_KTIME
     rt_ktime_cputimer_init();
