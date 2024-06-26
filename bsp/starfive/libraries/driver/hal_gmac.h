@@ -114,6 +114,7 @@ void generic_phy_link_detect(void *param);
 int gmac_phy_init(gmac_handle_t *handle);
 int genric_gmac_phy_init(gmac_handle_t * handle);
 void gmac_link_change(gmac_handle_t *dev,int up);
+int generic_dev_deinit(struct gmac_dev *dev);
 
 void eqos_gmac_ops_init(gmac_handle_t *handle);
 int rtl_gmac_ops_init(gmac_handle_t *handle);

@@ -216,6 +216,11 @@
 #define PHY_GBIT_FEATURES    (PHY_BASIC_FEATURES | \
                  PHY_1000BT_FEATURES)
 
+#define SPEED_10        10
+#define SPEED_100       100
+#define SPEED_1000      1000
+#define SPEED_2500      2500
+#define SPEED_10000     10000
 
 int gmac_dev_setup(struct gmac_dev *dev, gmac_handle_t *hal);
 int gmac_dev_genphy_config_aneg(struct gmac_dev *dev);
@@ -224,26 +229,6 @@ int gmac_dev_genphy_reset(struct gmac_dev *dev);
 int gmac_dev_genphy_process_aneg_result(struct gmac_dev *dev, int result);
 int genphy_update_link(struct gmac_dev *dev);
 int register_gmac_phy_driver(struct gmac_dev *dev, unsigned int value);
-/**
- * gmac_phy_interface_is_rgmii - Convenience function for testing if a PHY interface
- * is RGMII (all variants)
- * @interface: the phy interface type
- */
-#if 0
-static inline int gmac_phy_interface_is_rgmii(gmac_phy_interface_t interface)
-{
-    return (interface >= GMAC_PHY_INTERFACE_MODE_RGMII && interface <= GMAC_PHY_INTERFACE_MODE_RGMII_TXID);
-}
 
-/**
- * gmac_phy_interface_is_sgmii - Convenience function for testing if a PHY interface
- * is SGMII (all variants)
- * @interface: the phy interface type
- */
-static inline int gmac_phy_interface_is_sgmii(gmac_phy_interface_t interface)
-{
-    return (interface >= GMAC_PHY_INTERFACE_MODE_SGMII && interface <= GMAC_PHY_INTERFACE_MODE_QSGMII);
-}
-#endif
 #endif /* __HAL_GMAC_DEV_H_ */
 

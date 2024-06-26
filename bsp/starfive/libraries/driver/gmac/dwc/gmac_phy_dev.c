@@ -318,6 +318,87 @@ static int gmac_phy_preinit(struct gmac_dev *dev)
     return 0;
 }
 
+int generic_dev_deinit(struct gmac_dev *dev)
+{
+    if (dev) {
+        hal_free(dev);
+    }
+    return 0;
+}
+
+static int genphy_read_status_fixed(struct gmac_dev *dev)
+{
+    int err, bmcr;
+    int speed, speed_mode, duplex;
+
+    err = gmac_mdio_read(dev->hal, MII_BMCR, &bmcr);
+
+    if (err < 0)
+         return bmcr;
+
+    if (bmcr & BMCR_FULLDPLX)
+	duplex = 1;
+    else
+	duplex = 0;
+
+    if (bmcr & BMCR_SPEED1000) {
+        speed = SPEED_1000;
+	speed_mode = 2;
+    } else if (bmcr & BMCR_SPEED100) {
+        speed = SPEED_100;
+	speed_mode = 1;
+    } else {
+        speed = SPEED_10;
+	speed_mode = 0;
+    }
+
+    if ((dev->speed_mode != speed_mode) ||
+	(dev->duplex != duplex))
+	dev->mode_changed = 1;
+
+    dev->speed_mode = speed_mode;
+    dev->speed = speed;
+    dev->duplex = duplex;
+
+    hal_printf("speed %d duplex %d\n", speed, duplex);
+
+    return 0;
+}
+
+static int generic_dev_init(struct gmac_dev *dev)
+{
+    gmac_handle_t *handle = dev->hal;
+    int ret;
+
+    ret = gmac_dev_genphy_config_aneg(dev);
+    if (ret < 0)
+	return ret;
+
+    ret = gmac_dev_genphy_process_aneg_result(dev, ret);
+    if (ret < 0)
+	return ret;
+
+    ret = genphy_update_link(dev);
+    if (ret < 0)
+	return ret;
+
+    ret = genphy_read_status_fixed(dev);
+    if (ret < 0)
+	return ret;
+
+    return 0;
+}
+
+
+static struct gmac_phy_dev generic_phy_dev = {
+    .name = "generic phy",
+    .ops = {
+       .init = generic_dev_init,
+       .deinit = generic_dev_deinit,
+       .check_link_status = generic_phy_link_detect,
+    },
+};
+
 int genric_gmac_phy_init(gmac_handle_t *handle)
 {
     struct gmac_dev *dev;
@@ -362,8 +443,10 @@ int genric_gmac_phy_init(gmac_handle_t *handle)
 
     ret = register_gmac_phy_driver(dev, value);
     if (ret) {
-	hal_printf("get PHY failed!\n");
-	goto err_phy;
+	hal_printf("phy addr %d and id 0x%x can not found. Set gen PHY!\n",
+		handle->gmac_config.phy_addr, value);
+	dev->ops = &generic_phy_dev.ops;
+	dev->name = generic_phy_dev.name;
     }
     handle->phy_dev = dev;
 

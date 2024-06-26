@@ -107,12 +107,6 @@
 #define YT8521_CLOCK_GATING_REG		0xC
 #define YT8521_CGR_RX_CLK_EN		BIT(12)
 
-#define SPEED_10        10
-#define SPEED_100       100
-#define SPEED_1000      1000
-#define SPEED_2500      2500
-#define SPEED_10000     10000
-
 /* Produces a mask of set bits covering a range of a uint value */
 static inline unsigned int bitfield_mask(unsigned int shift, unsigned int width)
 {
@@ -438,14 +432,6 @@ static int yt8531_dev_init(struct gmac_dev *dev)
 
 }
 
-int yt8531_dev_deinit(struct gmac_dev *dev)
-{
-    if (dev) {
-        hal_free(dev);
-    }
-    return 0;
-}
-
 static struct gmac_phy_dev phy_dev[] = {
     {
 	.id   = PHY_ID_YT8531,
@@ -453,7 +439,7 @@ static struct gmac_phy_dev phy_dev[] = {
 	.name  = "yt8531",
 	.ops = {
 	   .init = yt8531_dev_init,
-	   .deinit = yt8531_dev_deinit,
+	   .deinit = generic_dev_deinit,
 	   .check_link_status = generic_phy_link_detect,
 	},
     }
@@ -465,8 +451,8 @@ int register_gmac_phy_driver(struct gmac_dev *dev, unsigned int value)
 
     for (i = 0; i < sizeof(phy_dev) / sizeof(phy_dev[0]); i++) {
 	if ((phy_dev[i].id & phy_dev[i].mask) == value) {
-	    dev->name = phy_dev->name;
-	    dev->ops = &phy_dev->ops;
+	    dev->name = phy_dev[i].name;
+	    dev->ops = &phy_dev[i].ops;
 	    return 0;
 	}
     }
