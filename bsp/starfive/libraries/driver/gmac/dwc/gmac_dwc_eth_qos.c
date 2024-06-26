@@ -896,7 +896,7 @@ int gmac_mdio_write(gmac_handle_t *gmac, int reg, unsigned int data)
     return eqos_mdio_write(gmac->priv, gmac->gmac_config.phy_addr, reg, &data, 2);
 }
 
-int gmac_mdio_read(gmac_handle_t *gmac, int reg, void *data)
+int gmac_mdio_read(gmac_handle_t *gmac, int reg, unsigned int *data)
 {
     return eqos_mdio_read(gmac->priv, gmac->gmac_config.phy_addr, reg, data, 2);
 }

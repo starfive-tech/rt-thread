@@ -399,7 +399,7 @@ typedef struct gmac_eth_dev {
 #define  STATUS_FBI                 BIT(13)
 
 int gmac_mdio_write(gmac_handle_t *gmac, int reg, unsigned int data);
-int gmac_mdio_read(gmac_handle_t *gmac, int reg, void *data);
+int gmac_mdio_read(gmac_handle_t *gmac, int reg, unsigned int *data);
 
 
 #ifdef __cplusplus

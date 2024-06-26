@@ -259,7 +259,7 @@ int gmac_dev_genphy_reset(struct gmac_dev *dev)
 void generic_phy_link_detect(void *param)
 {
     gmac_handle_t *handle = param;
-    unsigned short bmsr = 0;
+    unsigned int bmsr = 0;
     unsigned short link_status = 0;
     unsigned short link_status_old = handle->phy_dev->link_register & BMSR_LSTATUS;
     unsigned short phy_val;
@@ -294,7 +294,7 @@ int gmac_phy_init(gmac_handle_t * handle)
 static int gmac_phy_preinit(struct gmac_dev *dev)
 {
     gmac_handle_t *handle = dev->hal;
-    unsigned short bmsr;
+    unsigned int bmsr;
     int ret;
 
     ret = gmac_dev_genphy_reset(dev);
