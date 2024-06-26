@@ -121,7 +121,6 @@ int rt_hw_uart_init(void)
         data = get_uart_config(i);
         if (data->control_uart)
 	    continue;
-	uart_config_fixup(i);
 	uart_8250_set_ops(uart);
 	uart->priv = data;
 	console_name[4] = data->index + '0';
@@ -141,7 +140,6 @@ int rt_control_uart_init(void)
         uart = &uart_config[i];
         data = get_uart_config(i);
 	if (data->control_uart) {
-	    uart_config_fixup(i);
 	    uart_8250_set_ops(uart);
 	    uart->priv = data;
 	    rt_register_uart(uart, RT_CONSOLE_DEVICE_NAME);

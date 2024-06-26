@@ -37,6 +37,20 @@ static struct uart_8250_data uart_config[] = {
         .control_uart = 1,
         .pinctrl = 0,
     },
+#if 0
+    {/* uart3 */
+	.hw_base = 0x12000000,
+	.remap_base = (void *)0x12000000,
+	.irqno = 45,
+	.uart8250_in_freq = 59400000,
+	.uart8250_baudrate = 115200,
+	.uart8250_reg_width = 4,
+	.uart8250_reg_shift = 2,
+	.index = 3,
+	.control_uart = 1,
+	.pinctrl = 0,
+    },
+#endif
 };
 
 #if defined(BSP_USING_GMAC)

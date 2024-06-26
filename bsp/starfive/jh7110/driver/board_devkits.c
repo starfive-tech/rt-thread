@@ -62,6 +62,15 @@ static struct uart_pin uart_pins_array[] = {
 	.cts_select = 54,
 	.rts_select = 67,
     },
+#if 0
+    {
+	.id = 3,
+	.tx_pins = 32,
+	.rx_pins = 34,
+	.tx_select = 85,
+	.rx_select = 68,
+    },
+#endif
 };
 
 static void can_set_pinctrl(int id)

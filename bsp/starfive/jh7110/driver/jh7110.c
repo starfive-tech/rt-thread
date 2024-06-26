@@ -341,46 +341,48 @@ void *get_ipi_handler()
 #endif
 }
 
+static void uart_config_fixup(struct uart_8250_data *conf)
+{
+    int root_rate, in_freq;
+    int div;
+
+    root_rate = get_peri_root_rate();
+
+    div = sys_readl(sys_crg_base + CLK_UART3_CORE_OFFSET + (conf->index - 3) * 0x8);
+    div = (div >> 8) & 0xffff;
+    in_freq = root_rate / div;
+    hal_printf("uart index %d in freq %d\n", conf->index, conf->uart8250_in_freq);
+    if (in_freq != conf->uart8250_in_freq)
+	conf->uart8250_in_freq = in_freq;
+}
+
+static void jh7110_one_uart_init(struct uart_8250_data *conf)
+{
+    sys_setbits(sys_crg_base + CLK_UART0_APB_OFFSET + conf->index * 0x8,
+			BIT(31));
+    sys_setbits(sys_crg_base + CLK_UART0_CORE_OFFSET + conf->index * 0x8,
+			BIT(31));
+    sys_clrsetbits(sys_crg_base + SYS_CRG_RESET2,
+			    BIT(19 + conf->index *2) | BIT(20 + conf->index *2), 0);
+    if (conf->pinctrl)
+	uart_set_pinctrl(conf->index);
+
+    if (conf->index > 2)
+	uart_config_fixup(conf);
+}
+
 static void jh7110_uart_init()
 {
     struct uart_8250_data *conf;
     int i;
+    int root_rate;
 
-    /* assert uart 0 as linux uart */
     for (i = 0; i < get_uart_config_num(); i++) {
 	conf = get_uart_config(i);
-	sys_setbits(sys_crg_base + CLK_UART0_APB_OFFSET + conf->index * 0x8,
-			BIT(31));
-	sys_setbits(sys_crg_base + CLK_UART0_CORE_OFFSET + conf->index * 0x8,
-			BIT(31));
-	sys_clrsetbits(sys_crg_base + SYS_CRG_RESET2,
-			    BIT(19 + conf->index *2) | BIT(20 + conf->index *2), 0);
-	if (conf->pinctrl)
-		uart_set_pinctrl(conf->index);
+	jh7110_one_uart_init(conf);
    }
+
    rt_hw_uart_init();
-}
-
-void uart_config_fixup(int id)
-{
-    struct uart_8250_data *conf;
-    int root_rate;
-    int div;
-
-    conf = get_uart_config(id);
-
-    if (conf->index < 3)
-	return;
-
-    root_rate = get_peri_root_rate();
-
-    if (conf->control_uart) {
-	while (!env_is_ready());
-    }
-
-    div = sys_readl(sys_crg_base + CLK_UART3_CORE_OFFSET + (conf->index - 3) * 0x8);
-    div = (div >> 8) & 0xffff;
-    conf->uart8250_in_freq = root_rate / div;
 }
 
 static void jh7110_env_init(void)
