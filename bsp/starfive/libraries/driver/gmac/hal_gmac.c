@@ -268,7 +268,7 @@ static rt_err_t dw_gmac_tx(rt_device_t dev, struct pbuf *p)
 
     ret = gmac->ops->check_descriptor(gmac->priv, &dist);
     if (ret < 0) {
-	return RT_ERROR;
+	return -RT_ERROR;
     }
 
     LOG_DBG("gmac tx packet len %d total len %d\n", p->len, p->tot_len);
@@ -296,6 +296,9 @@ static struct pbuf *dw_gmac_rx(rt_device_t dev)
     struct gmac_lwip_pbuf *lwip_buf;
     int rx_index, pkt_len;
     void *packetp;
+
+    if (!gmac->phy_dev || !gmac->phy_dev->link_status)
+	return NULL;
 
     if ((pkt_len = gmac->ops->recv(gmac->priv, &packetp)) > 0) {
 	LOG_DBG("gmac rx packet len %d\n", pkt_len);
