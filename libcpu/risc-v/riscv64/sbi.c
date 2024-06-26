@@ -266,8 +266,6 @@ void sbi_init(void)
         has_ipi_extension = true;
     if (sbi_probe_extension(SBI_EXT_ID_RFNC) != 0)
         has_rfnc_extension = true;
-
-    sbi_print_version();
 }
 
 void rt_hw_console_output(const char *str)

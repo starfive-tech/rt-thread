@@ -115,6 +115,7 @@ void rt_hw_board_init(void)
 #endif
     rt_plic_init();
 
+    sbi_init();
     plic_init();
 
     rt_hw_interrupt_init();
@@ -128,8 +129,8 @@ void rt_hw_board_init(void)
 #endif /* RT_USING_CONSOLE */
 
     rt_hw_tick_init();
-    sbi_init();
 
+    sbi_print_version();
 #ifdef RT_USING_HEAP
     rt_kprintf("heap: [0x%08x - 0x%08x]\n", get_heap_base(),
 	(get_heap_base() + get_heap_size()));
