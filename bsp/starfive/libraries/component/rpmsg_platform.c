@@ -11,6 +11,7 @@
 #include <rtatomic.h>
 #include <interrupt.h>
 #include "board.h"
+#include "sbi.h"
 
 #define IPI_MB_CHANS		2
 #define MAX_DEV_PER_CHAN	8
