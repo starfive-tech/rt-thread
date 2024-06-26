@@ -109,7 +109,7 @@ struct gmac_ops {
 
 void gmac_plat_init(gmac_handle_t *gmac);
 void gmac_set_board_config(gmac_handle_t *gmac);
-int gmac_close(gmac_handle_t *gmac);
+int gmac_close(gmac_handle_t *gmac, int);
 void generic_phy_link_detect(void *param);
 int gmac_phy_init(gmac_handle_t *handle);
 int genric_gmac_phy_init(gmac_handle_t * handle);

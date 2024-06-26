@@ -843,7 +843,6 @@ static gmac_handle_t* eqos_open(gmac_handle_t *gmac)
      */
     eqos_dev = (eqos_eth_dev_t *)hal_malloc(sizeof(eqos_eth_dev_t));//(struct dw_eth_dev *) memalign(ARCH_DMA_MINALIGN,
     if (!eqos_dev) {
- 	hal_free(gmac);
         hal_printf("malloc mem failed!\n");
         return NULL;
     }
@@ -860,12 +859,14 @@ static gmac_handle_t* eqos_open(gmac_handle_t *gmac)
     eqos_dev->tegra186_regs = (void *)(gmac->base + EQOS_TEGRA186_REGS_BASE);
 
     ret = genric_gmac_phy_init(gmac);
-    if (ret)
+    if (ret) {
+	hal_free(gmac->priv);
+	gmac->priv = NULL;
 	return NULL;
+    }
 
-    if(eqos_eth_init(eqos_dev))
-    {
-        gmac_close(gmac);
+    if (eqos_eth_init(eqos_dev)) {
+        gmac_close(gmac, 0);
         return NULL;
     }
 
@@ -877,15 +878,15 @@ static gmac_handle_t* eqos_open(gmac_handle_t *gmac)
 
 }
 
-int gmac_close(gmac_handle_t *gmac)
+int gmac_close(gmac_handle_t *gmac, int free_resource)
 {
-    //gmac_eth_int_register(gmac, NULL, NULL, 0);
-    //sys_gmac_deinit(gmac->id);
 
-    eqos_resources_free(gmac->priv);
+    if (free_resource)
+	eqos_resources_free(gmac->priv);
     hal_free(gmac->priv);
     hal_free(gmac->phy_dev);
-    //hal_free(gmac);
+    gmac->phy_dev = NULL;
+    gmac->priv = NULL;
 
     return 0;
 }

@@ -318,11 +318,11 @@ static int gmac_phy_preinit(struct gmac_dev *dev)
     return 0;
 }
 
-int genric_gmac_phy_init(gmac_handle_t * handle)
+int genric_gmac_phy_init(gmac_handle_t *handle)
 {
     struct gmac_dev *dev;
     unsigned int value;
-    unsigned short temp_val;
+    int temp_val;
     int ret, i;
 
     dev = (struct gmac_dev *)hal_malloc(sizeof(struct gmac_dev));
@@ -356,16 +356,25 @@ int genric_gmac_phy_init(gmac_handle_t * handle)
 
     if (handle->gmac_config.phy_addr == 0x1f) {
 	hal_printf("No PHY device!\n");
-	return -1;
+	ret = -1;
+	goto err_phy;
     }
 
     ret = register_gmac_phy_driver(dev, value);
-    if (ret)
-	return ret;
-
+    if (ret) {
+	hal_printf("get PHY failed!\n");
+	goto err_phy;
+    }
     handle->phy_dev = dev;
 
     ret = gmac_phy_preinit(dev);
+    if (ret) {
+	hal_printf("PHY preinit failed!\n");
+	goto err_phy;
+    }
+    return 0;
 
+err_phy:
+    hal_free(dev);
     return ret;
 }
