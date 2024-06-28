@@ -259,7 +259,7 @@ struct ipms_canfd_priv {
 
 struct ipms_baud_rate
 {
-    rt_uint32_t baud_rate;
+    uint32_t baud_rate;
     struct can_bittiming bittiming;
 };
 

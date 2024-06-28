@@ -204,7 +204,7 @@ static int eqos_gmac_isr(void *priv)
 
 //static int eqos_mdio_read(eqos_eth_dev_t *eqos_dev, int addr, int devad, int reg)
 
-static int eqos_mdio_read(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *data, rt_uint32_t size)
+static int eqos_mdio_read(void *bus, uint32_t addr, uint32_t reg, void *data, uint32_t size)
 {
     uint32_t mdio_val;
     int ret;
@@ -246,7 +246,7 @@ static int eqos_mdio_read(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *da
     return 0;
 }
 
-static int eqos_mdio_write(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *data, rt_uint32_t size)
+static int eqos_mdio_write(void *bus, uint32_t addr, uint32_t reg, void *data, uint32_t size)
 {
     uint32_t mdio_val;
     int ret;
@@ -258,7 +258,7 @@ static int eqos_mdio_write(void *bus, rt_uint32_t addr, rt_uint32_t reg, void *d
         return ret;
     }
 
-    sys_writel(*(rt_uint16_t *)data, &eqos_dev->mac_regs->mdio_data);
+    sys_writel(*(uint16_t *)data, &eqos_dev->mac_regs->mdio_data);
 
     csr_clk_range = csr_clk_range_get(eqos_dev->handle);
     mdio_val = sys_readl(&eqos_dev->mac_regs->mdio_address);
@@ -557,10 +557,10 @@ static void eqos_eth_trans_ctrl(eqos_eth_dev_t *eqos_dev, int en)
 
         /* Wait for TX all packets to drain out of MTL */
         for (i = 0; i < 1000000; i++) {
-            rt_uint32_t val = sys_readl(&eqos_dev->mtl_regs->txq0_debug);
-            rt_uint32_t trcsts = (val >> EQOS_MTL_TXQ0_DEBUG_TRCSTS_SHIFT) &
+            uint32_t val = sys_readl(&eqos_dev->mtl_regs->txq0_debug);
+            uint32_t trcsts = (val >> EQOS_MTL_TXQ0_DEBUG_TRCSTS_SHIFT) &
                 EQOS_MTL_TXQ0_DEBUG_TRCSTS_MASK;
-            rt_uint32_t txqsts = val & EQOS_MTL_TXQ0_DEBUG_TXQSTS;
+            uint32_t txqsts = val & EQOS_MTL_TXQ0_DEBUG_TXQSTS;
             if ((trcsts != 1) && (!txqsts))
                 break;
         }
@@ -571,10 +571,10 @@ static void eqos_eth_trans_ctrl(eqos_eth_dev_t *eqos_dev, int en)
 
         /* Wait for all RX packets to drain out of MTL */
         for (i = 0; i < 1000000; i++) {
-            rt_uint32_t val = sys_readl(&eqos_dev->mtl_regs->rxq0_debug);
-            rt_uint32_t prxq = (val >> EQOS_MTL_RXQ0_DEBUG_PRXQ_SHIFT) &
+            uint32_t val = sys_readl(&eqos_dev->mtl_regs->rxq0_debug);
+            uint32_t prxq = (val >> EQOS_MTL_RXQ0_DEBUG_PRXQ_SHIFT) &
                 EQOS_MTL_RXQ0_DEBUG_PRXQ_MASK;
-            rt_uint32_t rxqsts = (val >> EQOS_MTL_RXQ0_DEBUG_RXQSTS_SHIFT) &
+            uint32_t rxqsts = (val >> EQOS_MTL_RXQ0_DEBUG_RXQSTS_SHIFT) &
                 EQOS_MTL_RXQ0_DEBUG_RXQSTS_MASK;
             if ((!prxq) && (!rxqsts))
                 break;
@@ -652,7 +652,7 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
 
     /* Flow control used only if each channel gets 4KB or more FIFO */
     if (rqs >= ((4096 / 256) - 1)) {
-        rt_uint32_t rfd, rfa;
+        uint32_t rfd, rfa;
 
         setbits(&eqos_dev->mtl_regs->rxq0_operation_mode,
                  EQOS_MTL_RXQ0_OPERATION_MODE_EHFC);
@@ -786,7 +786,7 @@ static int eqos_eth_init(eqos_eth_dev_t *eqos_dev)
 
     for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
         struct eqos_desc *rx_desc = &(eqos_dev->rx_descs[i]);
-        rx_desc->des0 = (rt_uint32_t)(unsigned long)(eqos_dev->rx_dma_buf[i]);
+        rx_desc->des0 = (uint32_t)(unsigned long)(eqos_dev->rx_dma_buf[i]);
         rx_desc->des3 |= EQOS_DESC3_OWN | EQOS_DESC3_BUF1V | EQOS_DESC3_IOC;
 
         mb();
